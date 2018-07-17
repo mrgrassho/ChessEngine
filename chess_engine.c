@@ -26,9 +26,14 @@ struct piece_t{
 };
 typedef struct piece_t piece;
 
-struct cell_t{
+struct node_t{
   uint8_t ch;  // char
   uint8_t num;  // number
+};
+typedef struct node_t node;
+
+struct cell_t{
+  node *nd;
   piece *p;
 };
 typedef struct cell_t cell;
