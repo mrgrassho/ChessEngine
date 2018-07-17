@@ -47,77 +47,53 @@ int init_board(board * brd){
   return 1;
 }
 
-int init_pawns(board * brd){
+int init_pieces(board * brd){
+  // PAWNS
   for (size_t i = 8; i < 16; i++) {
-    brd[i]->p.tp = type_piece.PAWN;
-    brd[i]->p.cl = color.BLACK;
+    brd[i]->p.tp = PAWN;
+    brd[i]->p.cl = BLACK;
   }
   for (size_t i = 48; i < 56; i++) {
-    brd[i]->p.tp = type_piece.PAWN;
-    brd[i]->p.cl = color.WHITE;
+    brd[i]->p.tp = PAWN;
+    brd[i]->p.cl = WHITE;
   }
-  return 1;
-}
-
-int init_horses(board * brd){
-  brd[1]->p.tp = type_piece.HORSE;
-  brd[1]->p.cl = color.BLACK;
-  brd[6]->p.tp = type_piece.HORSE;
-  brd[6]->p.cl = color.BLACK;
-  brd[57]->p.tp = type_piece.HORSE;
-  brd[57]->p.cl = color.WHITE;
-  brd[62]->p.tp = type_piece.HORSE;
-  brd[62]->p.cl = color.WHITE;
-  return 1;
-}
-
-int init_towers(board * brd){
-  brd[0]->p.tp = type_piece.TOWER;
-  brd[0]->p.cl = color.BLACK;
-  brd[7]->p.tp = type_piece.TOWER;
-  brd[7]->p.cl = color.BLACK;
-  brd[56]->p.tp = type_piece.TOWER;
-  brd[56]->p.cl = color.WHITE;
-  brd[63]->p.tp = type_piece.TOWER;
-  brd[63]->p.cl = color.WHITE;
-  return 1;
-}
-
-int init_bishops(board * brd){
-  brd[2]->p.tp = type_piece.BISHOP;
-  brd[2]->p.cl = color.BLACK;
-  brd[5]->p.tp = type_piece.BISHOP;
-  brd[5]->p.cl = color.BLACK;
-  brd[58]->p.tp = type_piece.BISHOP;
-  brd[58]->p.cl = color.WHITE;
-  brd[61]->p.tp = type_piece.BISHOP;
-  brd[61]->p.cl = color.WHITE;
-  return 1;
-}
-
-int init_queens(board * brd){
-  brd[3]->p.tp = type_piece.QUEEN;
-  brd[3]->p.cl = color.BLACK;
-  brd[59]->p.tp = type_piece.QUEEN;
-  brd[59]->p.cl = color.WHITE;
-  return 1;
-}
-
-int init_kings(board * brd){
-  brd[4]->p.tp = type_piece.KING;
-  brd[4]->p.cl = color.BLACK;
-  brd[60]->p.tp = type_piece.KING;
-  brd[60]->p.cl = color.WHITE;
-  return 1;
-}
-
-int init_pieces(board * brd){
-  if !init_pawns(*board) exit(EXIT_FAILURE);
-  if !init_horses(*board) exit(EXIT_FAILURE);
-  if !init_bishops(*board) exit(EXIT_FAILURE);
-  if !init_towers(*board) exit(EXIT_FAILURE);
-  if !init_queens(*board) exit(EXIT_FAILURE);
-  if !init_kings(*board) exit(EXIT_FAILURE);
+  // HORSES
+  brd[1]->p.tp = HORSE;
+  brd[1]->p.cl = BLACK;
+  brd[6]->p.tp = HORSE;
+  brd[6]->p.cl = BLACK;
+  brd[57]->p.tp = HORSE;
+  brd[57]->p.cl = WHITE;
+  brd[62]->p.tp = HORSE;
+  brd[62]->p.cl = WHITE;
+  // TOWER
+  brd[0]->p.tp = TOWER;
+  brd[0]->p.cl = BLACK;
+  brd[7]->p.tp = TOWER;
+  brd[7]->p.cl = BLACK;
+  brd[56]->p.tp = TOWER;
+  brd[56]->p.cl = WHITE;
+  brd[63]->p.tp = TOWER;
+  brd[63]->p.cl = WHITE;
+  // BISHOP
+  brd[2]->p.tp = BISHOP;
+  brd[2]->p.cl = BLACK;
+  brd[5]->p.tp = BISHOP;
+  brd[5]->p.cl = BLACK;
+  brd[58]->p.tp = BISHOP;
+  brd[58]->p.cl = WHITE;
+  brd[61]->p.tp = BISHOP;
+  brd[61]->p.cl = WHITE;
+  // QUEENS
+  brd[3]->p.tp = QUEEN;
+  brd[3]->p.cl = BLACK;
+  brd[59]->p.tp = QUEEN;
+  brd[59]->p.cl = WHITE;
+  // KINGS
+  brd[4]->p.tp = KING;
+  brd[4]->p.cl = BLACK;
+  brd[60]->p.tp = KING;
+  brd[60]->p.cl = WHITE;
   return 1;
 }
 
