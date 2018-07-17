@@ -38,6 +38,13 @@ struct cell_t{
 };
 typedef struct cell_t cell;
 
+// ERROR HANDLING
+enum error_t{
+  SUCCESS,
+  FAILURE
+};
+typedef enum error_t error;
+
 int init_board(board * brd){
   uint8_t l = 65;
   for (size_t i = 0; i < 8; i++) {
@@ -49,7 +56,7 @@ int init_board(board * brd){
     }
     l += i;
   }
-  return 1;
+  return SUCCESS;
 }
 
 int init_pieces(board * brd){
@@ -99,7 +106,7 @@ int init_pieces(board * brd){
   brd[4]->p.cl = BLACK;
   brd[60]->p.tp = KING;
   brd[60]->p.cl = WHITE;
-  return 1;
+  return SUCCESS;
 }
 
 int main(int argc, char const *argv[]) {
