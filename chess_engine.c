@@ -109,6 +109,28 @@ int init_pieces(board * brd){
   return SUCCESS;
 }
 
+int get_index(uint8_t ch, uint8_t num, int * i){
+  if (ch < 65) || (ch > 72) {
+    return FAILURE;
+  }
+  if (ch < 31) || (ch > 38) {
+    return FAILURE;
+  }
+  ch -= 65;
+  num -= 31;
+  *i = 8 * (8 - num) + ch;
+  return SUCCESS;
+}
+
+int get_coord(int i, node * nd){
+  if (ch < 0) || (ch > 63) {
+    return FAILURE;
+  }
+  nd->ch = i % 8;
+  nd->num = i / 8;
+  return SUCCESS;
+}
+
 int main(int argc, char const *argv[]) {
   cell *board = malloc(sizeof(cell)*BRD_LEN);
   if (board == NULL){
