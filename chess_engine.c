@@ -41,17 +41,18 @@ typedef struct cell_t cell;
 // ERROR HANDLING
 enum error_t{
   SUCCESS,
-  FAILURE
+  FAILURE,
+  NO_PIECE
 };
 typedef enum error_t error;
 
 int init_board(board * brd){
   uint8_t l = 65;
   for (size_t i = 0; i < 8; i++) {
-    brd[i*8]brd->ch = l;
+    brd[i*8].nd->ch = l;
     uint8_t m = 38;
     for (size_t j = 0; j < 8; j++) {
-      brd[i+j]->num = m;
+      brd[i+j].nd->num = m;
       m -= j;
     }
     l += i;
@@ -62,50 +63,50 @@ int init_board(board * brd){
 int init_pieces(board * brd){
   // PAWNS
   for (size_t i = 8; i < 16; i++) {
-    brd[i]->p.tp = PAWN;
-    brd[i]->p.cl = BLACK;
+    brd[i].p->tp = PAWN;
+    brd[i].p->cl = BLACK;
   }
   for (size_t i = 48; i < 56; i++) {
-    brd[i]->p.tp = PAWN;
-    brd[i]->p.cl = WHITE;
+    brd[i].p->tp = PAWN;
+    brd[i].p->cl = WHITE;
   }
   // HORSES
-  brd[1]->p.tp = HORSE;
-  brd[1]->p.cl = BLACK;
-  brd[6]->p.tp = HORSE;
-  brd[6]->p.cl = BLACK;
-  brd[57]->p.tp = HORSE;
-  brd[57]->p.cl = WHITE;
-  brd[62]->p.tp = HORSE;
-  brd[62]->p.cl = WHITE;
+  brd[1].p->tp = HORSE;
+  brd[1].p->cl = BLACK;
+  brd[6].p->tp = HORSE;
+  brd[6].p->cl = BLACK;
+  brd[57].p->tp = HORSE;
+  brd[57].p->cl = WHITE;
+  brd[62].p->tp = HORSE;
+  brd[62].p->cl = WHITE;
   // TOWER
-  brd[0]->p.tp = TOWER;
-  brd[0]->p.cl = BLACK;
-  brd[7]->p.tp = TOWER;
-  brd[7]->p.cl = BLACK;
-  brd[56]->p.tp = TOWER;
-  brd[56]->p.cl = WHITE;
-  brd[63]->p.tp = TOWER;
-  brd[63]->p.cl = WHITE;
+  brd[0].p->tp = TOWER;
+  brd[0].p->cl = BLACK;
+  brd[7].p->tp = TOWER;
+  brd[7].p->cl = BLACK;
+  brd[56].p->tp = TOWER;
+  brd[56].p->cl = WHITE;
+  brd[63].p->tp = TOWER;
+  brd[63].p->cl = WHITE;
   // BISHOP
-  brd[2]->p.tp = BISHOP;
-  brd[2]->p.cl = BLACK;
-  brd[5]->p.tp = BISHOP;
-  brd[5]->p.cl = BLACK;
-  brd[58]->p.tp = BISHOP;
-  brd[58]->p.cl = WHITE;
-  brd[61]->p.tp = BISHOP;
-  brd[61]->p.cl = WHITE;
+  brd[2].p->tp = BISHOP;
+  brd[2].p->cl = BLACK;
+  brd[5].p->tp = BISHOP;
+  brd[5].p->cl = BLACK;
+  brd[58].p->tp = BISHOP;
+  brd[58].p->cl = WHITE;
+  brd[61].p->tp = BISHOP;
+  brd[61].p->cl = WHITE;
   // QUEENS
-  brd[3]->p.tp = QUEEN;
-  brd[3]->p.cl = BLACK;
-  brd[59]->p.tp = QUEEN;
-  brd[59]->p.cl = WHITE;
+  brd[3].p->tp = QUEEN;
+  brd[3].p->cl = BLACK;
+  brd[59].p->tp = QUEEN;
+  brd[59].p->cl = WHITE;
   // KINGS
-  brd[4]->p.tp = KING;
-  brd[4]->p.cl = BLACK;
-  brd[60]->p.tp = KING;
-  brd[60]->p.cl = WHITE;
+  brd[4].p->tp = KING;
+  brd[4].p->cl = BLACK;
+  brd[60].p->tp = KING;
+  brd[60].p->cl = WHITE;
   return SUCCESS;
 }
 
