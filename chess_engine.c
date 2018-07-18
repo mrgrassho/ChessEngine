@@ -361,19 +361,20 @@ int convert_index_4_king(int p, int i, int k){
 }
 
 int init_king_area(king_area * ka, color cl){
+  int k;
   if (ka == NULL) return FAILURE;
   ka->cl = cl;
   if (cl == WHITE) {
     for (size_t i = 0; i < 9; i++) {
       if (i < 6) ka->kc[i].ck = OCCUPIED;
       else ka->kc[i].ck = NULL_POS;
-      if (convert_index_4_king(60, i, int k)) ka->kc[i].n = k;
+      if (convert_index_4_king(60, i, k)) ka->kc[i].n = k;
     }
   } else {
     for (size_t i = 0; i < 9; i++) {
       if (i < 3) ka->kc[i].ck = NULL_POS;
       else ka->kc[i].ck = OCCUPIED;
-      if (convert_index_4_king(3, i, int k)) ka->kc[i].n = k;
+      if (convert_index_4_king(4, i, k)) ka->kc[i].n = k;
     }
   }
 }
