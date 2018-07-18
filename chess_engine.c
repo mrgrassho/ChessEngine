@@ -107,6 +107,10 @@ int init_pieces(board * brd){
   brd[4].p->cl = BLACK;
   brd[60].p->tp = KING;
   brd[60].p->cl = WHITE;
+  // REST OF THE CHESSBOARD SET TO NULL
+  for (size_t i = 16; i < 48; i++) {
+    brd[i].p = NULL;
+  }
   return SUCCESS;
 }
 
