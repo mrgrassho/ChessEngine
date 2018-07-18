@@ -344,6 +344,40 @@ int get_movlist(board* brd, uint8_t ch, uint8_t num, int* l){
   return SUCCESS;
 }
 
+int convert_index_4_king(int p, int i, int k){
+  if (is_valid_index(p)) return FAILURE;
+  if (i < 0 || i > 9) return FAILURE;
+
+  if (i < 3)
+    if (!is_valid_index(k = (p - 9) + i)) k = -1;
+
+  if (i < 6) if (!is_valid_index(k = p - 7))
+    if (!is_valid_index(k = (p - 1) + (i % 3))) k = -1;
+
+  if (i < 9) if (!is_valid_index(k = p - 7))
+    if (!is_valid_index(k = (p + 7) + (i % 3))) k = -1;
+
+  return SUCCESS;
+}
+
+int init_king_area(king_area * ka, color cl){
+  if (ka == NULL) return FAILURE;
+  ka->cl = cl;
+  if (cl == WHITE) {
+    for (size_t i = 0; i < 9; i++) {
+      if (i < 6) ka->kc[i].ck = OCCUPIED;
+      else ka->kc[i].ck = NULL_POS;
+      if (convert_index_4_king(60, i, int k)) ka->kc[i].n = k;
+    }
+  } else {
+    for (size_t i = 0; i < 9; i++) {
+      if (i < 3) ka->kc[i].ck = NULL_POS;
+      else ka->kc[i].ck = OCCUPIED;
+      if (convert_index_4_king(3, i, int k)) ka->kc[i].n = k;
+    }
+  }
+}
+
 int main(int argc, char const *argv[]) {
   cell *board = malloc(sizeof(cell)*BRD_LEN);
   if (board == NULL){
