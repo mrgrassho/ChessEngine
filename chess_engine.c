@@ -12,7 +12,7 @@ enum type_piece_t{
   QUEEN,
   KING
 };
-typedef struct type_piece_t type_piece;
+typedef enum type_piece_t type_piece;
 
 enum color_t{
   BLACK,
@@ -38,6 +38,45 @@ struct cell_t{
 };
 typedef struct cell_t cell;
 
+// KING IN CHECK - DATA STRUCTURE
+enum check_est_t{
+  CHECK,    // jaque
+  NO_CHECK,
+  NULL_POS,
+  OCCUPIED
+}
+typedef enum check_est_t check_est;
+
+struct king_cell_t{
+  check_est ck;
+  int n;
+}
+typedef struct king_cell_t king_cell;
+
+struct king_area{
+  king_cell kc[9];
+  color cl;
+};
+typedef struct king_area_t king_area;
+enum check_est_t{
+  CHECK,    // jaque
+  NO_CHECK,
+  NULL_POS,
+  OCCUPIED
+}
+typedef enum check_est_t check_est;
+
+struct king_cell_t{
+  check_est ck;
+  int n;
+}
+typedef struct king_cell_t king_cell;
+
+struct king_area{
+  king_cell kc[9];
+  color cl;
+};
+typedef struct king_area_t king_area;
 // ERROR HANDLING
 enum error_t{
   SUCCESS,
