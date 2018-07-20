@@ -7,8 +7,8 @@
 
 // Variable length List management with pointers with SET behaviour.
 
-#define SUCCESS 0
-#define FAILURE 1
+#define FAILURE 0
+#define SUCCESS 1
 #define MAXSIZE 2
 #define MAX 32
 #define SIZE l->size
@@ -95,6 +95,17 @@ int remove_list(list* l, int elem){
     i = i->next;
   }
   return SUCCESS;
+}
+
+int in_list(list* l, int elem){
+  if (l == NULL) return FAILURE;
+  node* i = l->head;
+  while (1) {
+    if (i == NULL) break;
+    if (i->body == elem) return SUCCESS;
+    i = i->next;
+  }
+  return FAILURE;
 }
 
 int print_list(list* l){
