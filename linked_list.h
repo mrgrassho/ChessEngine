@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Variable length List management with pointers with SET behaviour.
+// Variable length List management with pointers with DICCIONARY behaviour.
 
 #define FAILURE 0
 #define SUCCESS 1
@@ -13,8 +13,13 @@
 #define MAX 32
 #define SIZE l->size
 
+struct bd_t {
+  int b; // body
+  int c; // count
+};
+
 struct node_t {
-  int body;
+  struct bd_t* body;
   struct node_t* next;
 };
 typedef struct node_t node;
@@ -30,14 +35,15 @@ typedef struct list_t list;
 int create_list(list*);
 int append_list(list*, int);
 int append_unique_list(list*, int);
+int in_list(list*, int);
 int remove_list(list*, int);
 int print_list(list*);
 int del_list(list*);
 /* -------------------------- */
 
 int create_list(list* l){
-  l = malloc(sizeof(list));
-  if (l == NULL) return FAILURE;
+  l->head = NULL;
+  l->tail = NULL;
   SIZE = 0;
   return SUCCESS;
 }
@@ -45,10 +51,14 @@ int create_list(list* l){
 int append_list(list* l, int elem){
   if (l == NULL) return FAILURE;
   if (SIZE == MAX) return MAXSIZE;
+  int count = 1;
   node* nodo;
   nodo = malloc(sizeof(node));
   if (nodo == NULL) return FAILURE;
-  nodo->body = elem;
+  nodo->body = malloc(sizeof(struct bd_t));
+  if (nodo->body == NULL) return FAILURE;
+  nodo->body->b = elem;
+  nodo->body->c = count;
   nodo->next = NULL;
   if (SIZE > 0) {
     l->tail->next = malloc(sizeof(node));
@@ -68,7 +78,7 @@ int append_unique_list(list* l, int elem){
   node* i = l->head;
   while (1) {
     if (i == NULL) { append_list(l,elem); break;}
-    if (i->body == elem) break;
+    if (i->body->b == elem) { i->body->c++; break;}
     i = i->next;
   }
   return SUCCESS;
@@ -80,14 +90,16 @@ int remove_list(list* l, int elem){
   node* j = i;
   while (1) {
     if (i == NULL) break;
-    if (i->body == elem) {
-      if (l->head == l->tail) { del_list(l); create_list(l); }
+    if (i->body->b == elem) {
+      if (l->head == l->tail && i->body->c == 1) { del_list(l); create_list(l); }
       else {
-        if (l->head == i) l->head = l->head->next;
-        if (l->tail == i) l->tail->next = NULL;
-        j->next = i->next;
-        free(i);
-        SIZE--;
+        if (i->body->c == 1){
+          if (l->head == i) l->head = l->head->next;
+          if (l->tail == i) l->tail->next = NULL;
+          j->next = i->next;
+          free(i);
+          SIZE--;
+        } else i->body->c--;
         break;
       }
     }
@@ -102,7 +114,7 @@ int in_list(list* l, int elem){
   node* i = l->head;
   while (1) {
     if (i == NULL) break;
-    if (i->body == elem) return SUCCESS;
+    if (i->body->b == elem) return SUCCESS;
     i = i->next;
   }
   return FAILURE;
@@ -113,7 +125,7 @@ int print_list(list* l){
   node* i = l->head;
   while (1) {
     if (i == NULL) break;
-    printf("%i\n", i->body);
+    printf("%i | %i\n", i->body->b, i->body->c);
     i = i->next;
   }
   return SUCCESS;
