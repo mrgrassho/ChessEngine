@@ -27,14 +27,7 @@ struct piece_t{
 };
 typedef struct piece_t piece;
 
-struct node_t{
-  uint8_t ch;  // char
-  uint8_t num;  // number
-};
-typedef struct node_t node;
-
 struct cell_t{
-  node *nd;
   piece *p;
 };
 typedef struct cell_t cell;
@@ -43,77 +36,59 @@ typedef struct cell_t cell;
 list jql_white;
 list jql_black;
 
-// ERROR HANDLING
-enum error_t{
-  SUCCESS,
-  FAILURE,
-  NO_PIECE
-};
-typedef enum error_t error;
+#define FAILURE 0
+#define SUCCESS 1
+#define NOPIECE 2
 
-int init_board(board * brd){
-  uint8_t l = 65;
+int init_brd(board * brd){
   create_list(&jql_black);
   create_list(&jql_white);
-  for (size_t i = 0; i < 8; i++) {
-    brd[i*8].nd->ch = l;
-    uint8_t m = 38;
-    for (size_t j = 0; j < 8; j++) {
-      brd[i+j].nd->num = m;
-      m -= j;
-    }
-    l += i;
-  }
-  return SUCCESS;
-}
-
-int init_pieces(board * brd){
   // PAWNS
   for (size_t i = 8; i < 16; i++) {
-    brd[i].p->tp = PAWN;
-    brd[i].p->cl = BLACK;
+    brd[i]->p.tp = PAWN;
+    brd[i]->p.cl = BLACK;
   }
   for (size_t i = 48; i < 56; i++) {
-    brd[i].p->tp = PAWN;
-    brd[i].p->cl = WHITE;
+    brd[i]->p.tp = PAWN;
+    brd[i]->p.cl = WHITE;
   }
   // HORSES
-  brd[1].p->tp = HORSE;
-  brd[1].p->cl = BLACK;
-  brd[6].p->tp = HORSE;
-  brd[6].p->cl = BLACK;
-  brd[57].p->tp = HORSE;
-  brd[57].p->cl = WHITE;
-  brd[62].p->tp = HORSE;
-  brd[62].p->cl = WHITE;
+  brd[1]->p.tp = HORSE;
+  brd[1]->p.cl = BLACK;
+  brd[6]->p.tp = HORSE;
+  brd[6]->p.cl = BLACK;
+  brd[57]->p.tp = HORSE;
+  brd[57]->p.cl = WHITE;
+  brd[62]->p.tp = HORSE;
+  brd[62]->p.cl = WHITE;
   // TOWER
-  brd[0].p->tp = TOWER;
-  brd[0].p->cl = BLACK;
-  brd[7].p->tp = TOWER;
-  brd[7].p->cl = BLACK;
-  brd[56].p->tp = TOWER;
-  brd[56].p->cl = WHITE;
-  brd[63].p->tp = TOWER;
-  brd[63].p->cl = WHITE;
+  brd[0]->p.tp = TOWER;
+  brd[0]->p.cl = BLACK;
+  brd[7]->p.tp = TOWER;
+  brd[7]->p.cl = BLACK;
+  brd[56]->p.tp = TOWER;
+  brd[56]->p.cl = WHITE;
+  brd[63]->p.tp = TOWER;
+  brd[63]->p.cl = WHITE;
   // BISHOP
-  brd[2].p->tp = BISHOP;
-  brd[2].p->cl = BLACK;
-  brd[5].p->tp = BISHOP;
-  brd[5].p->cl = BLACK;
-  brd[58].p->tp = BISHOP;
-  brd[58].p->cl = WHITE;
-  brd[61].p->tp = BISHOP;
-  brd[61].p->cl = WHITE;
+  brd[2]->p.tp = BISHOP;
+  brd[2]->p.cl = BLACK;
+  brd[5]->p.tp = BISHOP;
+  brd[5]->p.cl = BLACK;
+  brd[58]->p.tp = BISHOP;
+  brd[58]->p.cl = WHITE;
+  brd[61]->p.tp = BISHOP;
+  brd[61]->p.cl = WHITE;
   // QUEENS
-  brd[3].p->tp = QUEEN;
-  brd[3].p->cl = BLACK;
-  brd[59].p->tp = QUEEN;
-  brd[59].p->cl = WHITE;
+  brd[3]->p.tp = QUEEN;
+  brd[3]->p.cl = BLACK;
+  brd[59]->p.tp = QUEEN;
+  brd[59]->p.cl = WHITE;
   // KINGS
-  brd[4].p->tp = KING;
-  brd[4].p->cl = BLACK;
-  brd[60].p->tp = KING;
-  brd[60].p->cl = WHITE;
+  brd[4]->p.tp = KING;
+  brd[4]->p.cl = BLACK;
+  brd[60]->p.tp = KING;
+  brd[60]->p.cl = WHITE;
   // REST OF THE CHESSBOARD SET TO NULL
   for (size_t i = 16; i < 48; i++) {
     brd[i].p = NULL;
@@ -144,24 +119,24 @@ int get_coord(int i, node * nd){
 }
 
 int is_valid_index(int i){
-  if ((i < 0) || (i > 63)) return 1;
-  return 0;
+  if ((i < 0) || (i > 63)) return FAILURE;
+  return SUCCESS;
 }
 
 int is_empty(board* brd, int i){
-  if (is_valid_index(i)) return 1;
+  if (!is_valid_index(i)) return FAILURE;
   return brd[i].p == NULL;
 }
 
 int is_enemy(board* brd, int i, color cl){
-  if (is_valid_index(i)) return 1;
-  if (!is_empty(brd, i)) return brd[i].p->cl != cl;
-  return 1;
+  if (!is_valid_index(i)) return FAILURE;
+  if (!is_empty(brd, i)) return brd[i]->p.cl != cl;
+  return FAILURE;
 }
 
 // ONLY FOR PAWNS
 int _get_next(board* brd, int i, int stps){
-  if (brd[i].p->cl == WHITE)
+  if (brd[i]->p.cl == WHITE)
     return i - stps;
   else
     return i + stps;
@@ -195,12 +170,12 @@ int get_movlist_pawns(board* brd, int i, int* l){
           *l++ = j;
     }
     if (_same_row(i,k-1)) {
-      if (is_enemy(brd, k-1, brd[i].p->cl)) {
+      if (is_enemy(brd, k-1, brd[i]->p.cl)) {
         *l++ = k-1;
       }
     }
     if (_same_row(i,k+1)) {
-      if (is_enemy(brd, k+1, brd[i].p->cl)) {
+      if (is_enemy(brd, k+1, brd[i]->p.cl)) {
         *l++ = k+1;
       }
     }
@@ -214,28 +189,28 @@ int get_movlist_towers(board* brd, int i, int* l){
   // going right
   if(_same_row(i, i+1)){
     for (size_t j = i % 8 + 1; i < 8; i++) {
-      if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+      if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
       else break;
     }
   }
   // going left
   if(_same_row(i, i-1)){
     for (size_t j = i % 8 - 1; i > -1; i--) {
-      if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+      if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
       else break;
     }
   }
   // going up
   if(_same_column(i, i+8)){
     for (size_t j = i + 8; i < 64; 8*i++) {
-      if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+      if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
       else break;
     }
   }
   // going down
   if(_same_column(i, i-8)){
     for (size_t j = i-8; i > -1; 8*i--) {
-      if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+      if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
       else break;
     }
   }
@@ -244,19 +219,19 @@ int get_movlist_towers(board* brd, int i, int* l){
 int _aux_horses(board* brd, int i, int k, int q, int* l){
   if (_same_row(i, k)) {
     if (_same_column(k, int m = k-16)) {
-      if (is_empty(brd, m) || is_enemy(brd,m,brd[i].p->cl))
+      if (is_empty(brd, m) || is_enemy(brd,m,brd[i]->p.cl))
         *l++ = m;
     }
     if (_same_column(q, int n = q-8)) {
-      if (is_empty(brd, n) || is_enemy(brd,n,brd[i].p->cl))
+      if (is_empty(brd, n) || is_enemy(brd,n,brd[i]->p.cl))
         *l++ = n;
     }
     if (_same_column(k, int o = k+16)) {
-      if (is_empty(brd, o) || is_enemy(brd,o,brd[i].p->cl))
+      if (is_empty(brd, o) || is_enemy(brd,o,brd[i]->p.cl))
         *l++ = o;
     }
     if (_same_column(q, int p = q+8)) {
-      if (is_empty(brd, p) || is_enemy(brd,p,brd[i].p->cl))
+      if (is_empty(brd, p) || is_enemy(brd,p,brd[i]->p.cl))
         *l++ = p;
     }
   }
@@ -276,22 +251,22 @@ int get_movlist_bishops(board* brd, int i, int* l){
   if (brd == NULL) return FAILURE;
   // going right up
   for (size_t j = i - 7; i > -1; i -= 7){
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+    if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
     else break;
   }
   // going right down
   for (size_t j = i + 9; i < 64; i += 9) {
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+    if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
     else break;
   }
   // going left down
   for (size_t j = i + 7; i < 64; i += 7) {
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+    if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
     else break;
   }
   // going left up
   for (size_t j = i - 9; i > -1; i -= 9){
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) *l++ = j;
+    if (is_empty(brd,j) || is_enemy(brd,j,brd[i]->p.cl)) *l++ = j;
     else break;
   }
   return SUCCESS;
@@ -314,6 +289,8 @@ int convert_index_4_king(int p, int i, int* k){
 }
 
 int get_movlist_kings(board* brd, int p, int* l){
+  if (!is_valid_index(p)) return FAILURE;
+  if (brd == NULL) return FAILURE;
   int k; list jql; int answer;
   if (brd[p]->p->cl == WHITE) jql = jql_white;
   else jql = jql_black;
@@ -321,18 +298,19 @@ int get_movlist_kings(board* brd, int p, int* l){
     if (convert_index_4_king(p, i, &k)){
       if (k != NULL) {
         if (!in_list(&jql, k))
-          if (is_empty(brd,k) || is_enemy(brd,k,brd[k].p->cl)) l++ = k;
+          if (is_empty(brd,k) || is_enemy(brd,k,brd[k]->p.cl)) l++ = k;
       }
     }
   }
+  return SUCCESS;
 }
 
 int get_movlist(board* brd, uint8_t ch, uint8_t num, int* l){
   if (brd == NULL) return FAILURE;
   if (!get_index(ch, num, int* p)) return FAILURE;
-  if (is_empty(brd,p)) return NO_PIECE;
+  if (is_empty(brd,p)) return NOPIECE;
   *l = NULL;           // Add NULL char to know size of the list
-  switch (brd[p].p->tp) {
+  switch (brd[p]->p.tp) {
     case PAWN:
       if (!get_movlist_pawns(brd, p, l)) return FAILURE;
       break;
@@ -357,15 +335,15 @@ int get_movlist(board* brd, uint8_t ch, uint8_t num, int* l){
   return SUCCESS;
 }
 
+
+
+
 int main(int argc, char const *argv[]) {
   cell *board = malloc(sizeof(cell)*BRD_LEN);
   if (board == NULL){
     exit(EXIT_FAILURE);
   }
-  if (!init_board(&board)){
-    exit(EXIT_FAILURE);
-  }
-  if (!init_pieces(&board)){
+  if (!init_brd(&board)){
     exit(EXIT_FAILURE);
   }
   // play chess
