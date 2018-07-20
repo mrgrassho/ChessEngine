@@ -1,5 +1,6 @@
 #include <studio.h>
 #include <stdint.h>
+#include "linked_list.h"
 
 #define PIECES 16
 #define BRD_LEN 64
@@ -38,26 +39,9 @@ struct cell_t{
 };
 typedef struct cell_t cell;
 
-// KING IN CHECK - DATA STRUCTURE
-enum check_est_t{
-  CHECK,    // jaque
-  NO_CHECK,
-  NULL_POS,
-  OCCUPIED
-}
-typedef enum check_est_t check_est;
-
-struct king_cell_t{
-  check_est ck;
-  int n;
-}
-typedef struct king_cell_t king_cell;
-
-struct king_area{
-  king_cell kc[9];
-  color cl;
-};
-typedef struct king_area_t king_area;
+// KING IN CHECK LIST - Positions where the enemy's king CAN'T be in.
+list jql_white;
+list jql_black;
 
 // ERROR HANDLING
 enum error_t{
@@ -69,6 +53,8 @@ typedef enum error_t error;
 
 int init_board(board * brd){
   uint8_t l = 65;
+  create_list(&jql_black);
+  create_list(&jql_white);
   for (size_t i = 0; i < 8; i++) {
     brd[i*8].nd->ch = l;
     uint8_t m = 38;
@@ -311,72 +297,64 @@ int get_movlist_bishops(board* brd, int i, int* l){
   return SUCCESS;
 }
 
-int get_movlist_kings(){
-}
-
-int get_movlist(board* brd, uint8_t ch, uint8_t num, int* l){
-  if (brd == NULL) return FAILURE;
-  if (!get_index(ch, num, int* i)) return FAILURE;
-  if (is_empty(brd,i)) return NO_PIECE;
-  *l = NULL;           // Add NULL char to know size of the list
-  switch (brd[i].p->tp) {
-    case PAWN:
-      if (!get_movlist_pawns(brd, i, l)) return FAILURE;
-      break;
-    case TOWER:
-      if (!get_movlist_towers(brd, i, l)) return FAILURE;
-      break;
-    case HORSE:
-      if (!get_movlist_horses(brd, i, l)) return FAILURE;
-      break;
-    case QUEEN:
-      if (!get_movlist_towers(brd, i, l) || !get_movlist_bishops(brd, i, l))
-        return FAILURE;
-      break;
-    case BISHOP:
-      if (!get_movlist_bishops(brd, i, l)) return FAILURE;
-      break;
-    case KING:
-      if (!get_movlist_kings(brd, i, l)) return FAILURE;
-      break;
-  }
-  *l = NULL;
-  return SUCCESS;
-}
-
-int convert_index_4_king(int p, int i, int k){
+int convert_index_4_king(int p, int i, int* k){
   if (is_valid_index(p)) return FAILURE;
   if (i < 0 || i > 9) return FAILURE;
 
   if (i < 3)
-    if (!is_valid_index(k = (p - 9) + i)) k = -1;
+    if (!is_valid_index(k = (p - 9) + i)) *k = NULL;
 
   if (i < 6) if (!is_valid_index(k = p - 7))
-    if (!is_valid_index(k = (p - 1) + (i % 3))) k = -1;
+    if (!is_valid_index(k = (p - 1) + (i % 3))) *k = NULL;
 
   if (i < 9) if (!is_valid_index(k = p - 7))
-    if (!is_valid_index(k = (p + 7) + (i % 3))) k = -1;
+    if (!is_valid_index(k = (p + 7) + (i % 3))) *k = NULL;
 
   return SUCCESS;
 }
 
-int init_king_area(king_area * ka, color cl){
-  int k;
-  if (ka == NULL) return FAILURE;
-  ka->cl = cl;
-  if (cl == WHITE) {
-    for (size_t i = 0; i < 9; i++) {
-      if (i < 6) ka->kc[i].ck = OCCUPIED;
-      else ka->kc[i].ck = NULL_POS;
-      if (convert_index_4_king(60, i, k)) ka->kc[i].n = k;
-    }
-  } else {
-    for (size_t i = 0; i < 9; i++) {
-      if (i < 3) ka->kc[i].ck = NULL_POS;
-      else ka->kc[i].ck = OCCUPIED;
-      if (convert_index_4_king(4, i, k)) ka->kc[i].n = k;
+int get_movlist_kings(board* brd, int p, int* l){
+  int k; list jql; int answer;
+  if (brd[p]->p->cl == WHITE) jql = jql_white;
+  else jql = jql_black;
+  for (int i = 0; i < count; i++) {
+    if (convert_index_4_king(p, i, &k)){
+      if (k != NULL) {
+        if (!in_list(&jql, k))
+          if (is_empty(brd,k) || is_enemy(brd,k,brd[k].p->cl)) l++ = k;
+      }
     }
   }
+}
+
+int get_movlist(board* brd, uint8_t ch, uint8_t num, int* l){
+  if (brd == NULL) return FAILURE;
+  if (!get_index(ch, num, int* p)) return FAILURE;
+  if (is_empty(brd,p)) return NO_PIECE;
+  *l = NULL;           // Add NULL char to know size of the list
+  switch (brd[p].p->tp) {
+    case PAWN:
+      if (!get_movlist_pawns(brd, p, l)) return FAILURE;
+      break;
+    case TOWER:
+      if (!get_movlist_towers(brd, p, l)) return FAILURE;
+      break;
+    case HORSE:
+      if (!get_movlist_horses(brd, p, l)) return FAILURE;
+      break;
+    case QUEEN:
+      if (!get_movlist_towers(brd, p, l) || !get_movlist_bishops(brd, p, l))
+        return FAILURE;
+      break;
+    case BISHOP:
+      if (!get_movlist_bishops(brd, p, l)) return FAILURE;
+      break;
+    case KING:
+      if (!get_movlist_kings(brd, p, l)) return FAILURE;
+      break;
+  }
+  *l = NULL;
+  return SUCCESS;
 }
 
 int main(int argc, char const *argv[]) {
