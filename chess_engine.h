@@ -8,51 +8,48 @@
 #define PIECES 16
 #define BRD_LEN 64
 
-enum type_piece_t{
+typedef enum {
   PAWN,
   TOWER,
   HORSE,
   BISHOP,
   QUEEN,
   KING
-};
-typedef enum type_piece_t type_piece;
+} type_piece_t;
 
 const char* type_ch[] = {"PAWN", "TOWER", "HORSE", "BISHOP", "QUEEN", "KING"};
 
-enum color_t{
+typedef enum {
   BLACK,
   WHITE
-};
-typedef enum color_t color;
+} color_t;
 
 const char* color_ch[] = {"BLACK", "WHITE"};
 
-struct piece_t{
-  type_piece tp;
-  color cl;
-};
-typedef struct piece_t piece;
+typedef struct {
+  type_piece_t tp;
+  color_t cl;
+} piece_t;
 
-struct cell_t{
-  piece* p;
-};
-typedef struct cell_t cell;
+
+typedef struct {
+  piece_t* p;
+} cell_t;
 
 // KING IN CHECK LIST - Positions where the enemy's king CAN'T be in.
-list jql_white;
-list jql_black;
+list_t jql_white;
+list_t jql_black;
 
 #define FAILURE 0
 #define SUCCESS 1
 #define NOPIECE 2
 
-int init_brd(cell * brd){
+int init_brd(cell_t * brd){
   create(&jql_black);
   create(&jql_white);
   // PAWNS
   for (size_t i = 0; i < 64; i++) {
-    brd->p = malloc(sizeof(piece));
+    brd->p = malloc(sizeof(piece_t));
     if (brd == NULL) return FAILURE;
     brd++;
   }
@@ -137,31 +134,31 @@ int is_valid_index(int i){
   return SUCCESS;
 }
 
-int is_empty(cell * brd, int i){
+int is_empty(cell_t * brd, int i){
   if (!is_valid_index(i)) return FAILURE;
   return brd[i].p == NULL;
 }
 
-int is_enemy(cell * brd, int i, color cl){
+int is_enemy(cell_t * brd, int i, color_t cl){
   if (!is_valid_index(i)) return FAILURE;
   if (!is_empty(brd, i)) return brd[i].p->cl != cl;
   return FAILURE;
 }
 
-const char* get_type(cell* brd, int p){
+const char* get_type(cell_t* brd, int p){
   if ((p < 0) || (p > 63)) return "";
   if (is_empty(brd, p)) return "";
   return type_ch[brd[p].p->tp];
 }
 
-const char* get_color(cell* brd, int p){
+const char* get_color(cell_t* brd, int p){
   if ((p < 0) || (p > 63)) return "";
   if (is_empty(brd, p)) return "";
   return color_ch[brd[p].p->cl];
 }
 
 // ONLY FOR PAWNS
-int _get_next(cell * brd, int i, int stps){
+int _get_next(cell_t * brd, int i, int stps){
   if (brd[i].p->cl == WHITE)
     return i - stps;
   else
@@ -178,7 +175,7 @@ int _same_column(int d, int k){
   return d%8 == k%8;
 }
 
-int get_movlist_pawns(cell * brd, int i, int* l, int* sz){
+int get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
 
@@ -213,7 +210,7 @@ int get_movlist_pawns(cell * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-int get_movlist_towers(cell * brd, int i, int* l, int* sz){
+int get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   // going right
@@ -251,7 +248,7 @@ int get_movlist_towers(cell * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-int _aux_horses(cell * brd, int i, int k, int q, int* l, int* sz){
+int _aux_horses(cell_t * brd, int i, int k, int q, int* l, int* sz){
   int m; int n;  int o;  int p;
   if (_same_row(i, k)) {
     if (_same_column(k, m = k-16)) {
@@ -280,7 +277,7 @@ int _aux_horses(cell * brd, int i, int k, int q, int* l, int* sz){
   return 0;
 }
 
-int get_movlist_horses(cell * brd, int i, int* l, int* sz){
+int get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   _aux_horses(brd, i, i+1, i+2, l, sz);
@@ -289,7 +286,7 @@ int get_movlist_horses(cell * brd, int i, int* l, int* sz){
   return 0;
 }
 
-int get_movlist_bishops(cell * brd, int p, int* l, int* sz){
+int get_movlist_bishops(cell_t * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
   // going right up
@@ -336,10 +333,10 @@ int convert_index_4_king(int p, int i, int* k){
 }
 
 // DEBUG ->
-int get_movlist_kings(cell * brd, int p, int* l, int* sz){
+int get_movlist_kings(cell_t * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
-  int k; list jql; int answer;
+  int k; list_t jql; int answer;
   if (brd[p].p->cl == WHITE) jql = jql_white;
   else jql = jql_black;
   for (int i = 0; i < 9; i++) {
@@ -353,11 +350,11 @@ int get_movlist_kings(cell * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
-int get_movlist(cell * brd, int p, int* l, int* sz){
+int get_movlist(cell_t * brd, int p, int* l, int* sz){
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (is_empty(brd,p)) return FAILURE;
-  *sz = 0;                            // Size of the list
+  *sz = 0;                            // Size of the list_t
   switch (brd[p].p->tp) {
     case PAWN:
       if (!get_movlist_pawns(brd, p, l, sz)) return FAILURE;
@@ -383,8 +380,8 @@ int get_movlist(cell * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
-int move_piece(cell * brd, int p, int q){
-  list jql;
+int move_piece(cell_t * brd, int p, int q){
+  list_t jql;
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (!is_valid_index(q)) return FAILURE;
@@ -399,11 +396,11 @@ int move_piece(cell * brd, int p, int q){
     if (q == valid_movs_p[i]) break;
     if (i == szp-1) return FAILURE;
   }
-  // Get King in cheque list
+  // Get King in cheque list_t
   if (brd[p].p->cl == WHITE) jql = jql_black;
   else  jql = jql_white;
   // Swap cells
-  brd[q].p = malloc(sizeof(piece));
+  brd[q].p = malloc(sizeof(piece_t));
   if (brd[q].p == NULL) return FAILURE;
   brd[q].p->tp = brd[p].p->tp;
   brd[q].p->cl = brd[p].p->cl;

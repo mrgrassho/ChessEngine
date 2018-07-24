@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Variable length List management with pointers with DICCIONARY behaviour.
+// Variable length list_t management with pointers with DICCIONARY behaviour.
 
 #define FAILURE 0
 #define SUCCESS 1
@@ -13,57 +13,55 @@
 #define MAX 64
 #define SIZE l->size
 
-struct bd_t {
+typedef struct {
   int b; // body
   int c; // count
-};
+} bd_t;
 
-struct node_t {
-  struct bd_t* body;
-  struct node_t* next;
-};
-typedef struct node_t node;
+typedef struct node_t {
+  bd_t * body;
+  struct node_t * next;
+} node_t;
 
-struct list_t {
-  node* head;
-  node* tail;
+typedef struct {
+  node_t* head;
+  node_t* tail;
   int   size;
-};
-typedef struct list_t list;
+} list_t;
 
 /* ------- PROTOTYPES ------- */
-int create(list*);
-int append(list*, int);
-int append_unique(list*, int);
-int append_unique_list(list*, int*, int);
-int in(list*, int);
-int remove_(list*, int);
-int remove_list(list*, int*, int);
-int print_list(list*);
-int del(list*);
+int create(list_t*);
+int append(list_t*, int);
+int append_unique(list_t*, int);
+int append_unique_list(list_t*, int*, int);
+int in(list_t*, int);
+int remove_(list_t*, int);
+int remove_list(list_t*, int*, int);
+int print_list(list_t*);
+int del(list_t*);
 /* -------------------------- */
 
-int create(list* l){
+int create(list_t* l){
   l->head = NULL;
   l->tail = NULL;
   SIZE = 0;
   return SUCCESS;
 }
 
-int append(list* l, int elem){
+int append(list_t* l, int elem){
   if (l == NULL) return FAILURE;
   if (SIZE == MAX) return FAILURE;
   int count = 1;
-  node* nodo;
-  nodo = malloc(sizeof(node));
+  node_t* nodo;
+  nodo = malloc(sizeof(node_t));
   if (nodo == NULL) return FAILURE;
-  nodo->body = malloc(sizeof(struct bd_t));
+  nodo->body = malloc(sizeof(bd_t));
   if (nodo->body == NULL) return FAILURE;
   nodo->body->b = elem;
   nodo->body->c = count;
   nodo->next = NULL;
   if (SIZE > 0) {
-    l->tail->next = malloc(sizeof(node));
+    l->tail->next = malloc(sizeof(node_t));
     if (l->tail->next == NULL) return FAILURE;
     l->tail->next = nodo;
   } else {
@@ -74,10 +72,10 @@ int append(list* l, int elem){
   return SUCCESS;
 }
 
-int append_unique(list* l, int elem){
+int append_unique(list_t* l, int elem){
   if (l == NULL) return FAILURE;
   if (SIZE == MAX) return FAILURE;
-  node* i = l->head;
+  node_t* i = l->head;
   while (1) {
     if (i == NULL) { append(l,elem); break;}
     if (i->body->b == elem) { i->body->c++; break;}
@@ -86,7 +84,7 @@ int append_unique(list* l, int elem){
   return SUCCESS;
 }
 
-int append_unique_list(list* l, int* array, int sz){
+int append_unique_list(list_t* l, int* array, int sz){
   if (l == NULL) return FAILURE;
   for (size_t i = 0; i < sz; i++) {
     if (!append_unique(l, array[i])) return FAILURE;
@@ -94,10 +92,10 @@ int append_unique_list(list* l, int* array, int sz){
   return SUCCESS;
 }
 
-int remove_(list* l, int elem){
+int remove_(list_t* l, int elem){
   if (l == NULL) return FAILURE;
-  node* i = l->head;
-  node* j = i;
+  node_t* i = l->head;
+  node_t* j = i;
   while (1) {
     if (i == NULL) break;
     if (i->body->b == elem) {
@@ -119,7 +117,7 @@ int remove_(list* l, int elem){
   return SUCCESS;
 }
 
-int remove_list(list* l, int* array, int sz){
+int remove_list(list_t* l, int* array, int sz){
   if (l == NULL) return FAILURE;
   for (size_t i = 0; i < sz; i++) {
     if (!remove_(l, array[i])) return FAILURE;
@@ -127,9 +125,9 @@ int remove_list(list* l, int* array, int sz){
   return SUCCESS;
 }
 
-int in(list* l, int elem){
+int in(list_t* l, int elem){
   if (l == NULL) return FAILURE;
-  node* i = l->head;
+  node_t* i = l->head;
   while (1) {
     if (i == NULL) break;
     if (i->body->b == elem) return SUCCESS;
@@ -138,9 +136,9 @@ int in(list* l, int elem){
   return FAILURE;
 }
 
-int print_list(list* l){
+int print_list(list_t* l){
   if (l == NULL) return FAILURE;
-  node* i = l->head;
+  node_t* i = l->head;
   while (1) {
     if (i == NULL) break;
     printf("%2i | %i\n", i->body->b, i->body->c);
@@ -149,10 +147,10 @@ int print_list(list* l){
   return SUCCESS;
 }
 
-int del(list* l) {
+int del(list_t* l) {
   if (l == NULL) return FAILURE;
-  node* i = l->head;
-  node* j;
+  node_t* i = l->head;
+  node_t* j;
   while (1) {
     if (i == NULL) break;
     j = i->next;
