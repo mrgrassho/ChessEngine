@@ -48,8 +48,8 @@ list jql_black;
 #define NOPIECE 2
 
 int init_brd(cell * brd){
-  create_list(&jql_black);
-  create_list(&jql_white);
+  create(&jql_black);
+  create(&jql_white);
   // PAWNS
   for (size_t i = 0; i < 64; i++) {
     brd->p = malloc(sizeof(piece));
@@ -110,26 +110,26 @@ int init_brd(cell * brd){
   return SUCCESS;
 }
 
-int get_index(uint8_t ch, uint8_t num, int * i){
+int get_index(int ch, int num){
   if ((ch < 65) || (ch > 72)) {
-    return FAILURE;
+    exit(FAILURE);
   }
-  if ((ch < 31) || (ch > 38)) {
-    return FAILURE;
+  if ((num < 49) || (num > 56)) {
+    exit(FAILURE);
   }
   ch -= 65;
-  num -= 31;
-  *i = 8 * (8 - num) + ch;
-  return SUCCESS;
+  num -= 49;
+  return (8 * (7 - num)) + ch;
 }
 
-int get_coord(int i, char* nd){
+char* get_coord(int i){
   if ((i < 0) || (i > 63)) {
-    return FAILURE;
+    exit(FAILURE);
   }
+  char *nd = malloc(sizeof(char)*2);
   nd[0] = (char) 65 + i % 8;
-  nd[1] = (char) 31 + i / 8;
-  return SUCCESS;
+  nd[1] = (char) 56 - i / 8;
+  return nd;
 }
 
 int is_valid_index(int i){
@@ -218,31 +218,34 @@ int get_movlist_towers(cell * brd, int i, int* l, int* sz){
   if (brd == NULL) return FAILURE;
   // going right
   if(_same_row(i, i+1)){
-    for (size_t j = (i % 8) + 1; j < 8; j++) {
-      if (is_empty(brd,i+j) || is_enemy(brd,i+j,brd[i].p->cl)) {*l++ = i+j; *sz += 1;}
-      else break;
+    for (int j = i + 1; j%8 != 0; j++) {
+      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
+      break;
     }
   }
   // going left
   if(_same_row(i, i-1)){
-    for (size_t j = (i % 8) - 1; j > -1; j--) {
-      if (is_empty(brd,i-j) || is_enemy(brd,i-j,brd[i].p->cl)) {*l++ = i-j; *sz += 1;}
-      else break;
-    }
-  }
-  // going up
-  if(_same_column(i, i+8)){
-    for (size_t j = i + 8; j < 64; j+=8) {
-      if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-      else break;
+    for (int j = i-1; j%8 != 7; j--) {
+      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
+      break;
     }
   }
   // going down
+  if(_same_column(i, i+8)){
+    for (int j = i + 8; j < 64; j+=8) {
+      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
+      break;
+    }
+  }
+  // going up
   if(_same_column(i, i-8)){
-    for (size_t j = i-8; j > -1; j-=8) {
-      if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-      else break;
-
+    for (int j = i-8; j > -1; j-=8) {
+      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
+      break;
     }
   }
   return SUCCESS;
@@ -286,28 +289,32 @@ int get_movlist_horses(cell * brd, int i, int* l, int* sz){
   return 0;
 }
 
-int get_movlist_bishops(cell * brd, int i, int* l, int* sz){
-  if (!is_valid_index(i)) return FAILURE;
+int get_movlist_bishops(cell * brd, int p, int* l, int* sz){
+  if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
   // going right up
-  for (size_t j = i - 7; i > -1; i -= 7){
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-    else break;
+  for (size_t j = p - 7; j%8 != 0; j -= 7){
+    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
+    break;
   }
   // going right down
-  for (size_t j = i + 9; i < 64; i += 9) {
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-    else break;
+  for (size_t j = p + 9; j%8 != 0; j += 9) {
+    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
+    break;
   }
   // going left down
-  for (size_t j = i + 7; i < 64; i += 7) {
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-    else break;
+  for (size_t j = p + 7; j%8 != 7; j += 7) {
+    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
+    break;
   }
   // going left up
-  for (size_t j = i - 9; i > -1; i -= 9){
-    if (is_empty(brd,j) || is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-    else break;
+  for (size_t j = p - 9; j%8 != 7; j -= 9){
+    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
+    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
+    break;
   }
   return SUCCESS;
 }
@@ -328,6 +335,7 @@ int convert_index_4_king(int p, int i, int* k){
   return SUCCESS;
 }
 
+// DEBUG ->
 int get_movlist_kings(cell * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
@@ -337,7 +345,7 @@ int get_movlist_kings(cell * brd, int p, int* l, int* sz){
   for (int i = 0; i < 9; i++) {
     if (convert_index_4_king(p, i, &k)){
       if (k != -1) {
-        if (!in_list(&jql, k))
+        if (!in(&jql, k))
           if (is_empty(brd,k) || is_enemy(brd,k,brd[k].p->cl)) {*l++ = k; *sz += 1;}
       }
     }
@@ -348,7 +356,7 @@ int get_movlist_kings(cell * brd, int p, int* l, int* sz){
 int get_movlist(cell * brd, int p, int* l, int* sz){
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
-  if (is_empty(brd,p)) return NOPIECE;
+  if (is_empty(brd,p)) return FAILURE;
   *sz = 0;                            // Size of the list
   switch (brd[p].p->tp) {
     case PAWN:
@@ -361,7 +369,9 @@ int get_movlist(cell * brd, int p, int* l, int* sz){
       if (!get_movlist_horses(brd, p, l, sz)) return FAILURE;
       break;
     case QUEEN:
-      if (!get_movlist_towers(brd, p, l, sz) || !get_movlist_bishops(brd, p, l, sz)) return FAILURE;
+      if (!get_movlist_towers(brd, p, l, sz)) return FAILURE;
+      l += *sz; //IMPORTANT - SHIFTS MEMORY POINTER
+      if (!get_movlist_bishops(brd, p, l, sz)) return FAILURE;
       break;
     case BISHOP:
       if (!get_movlist_bishops(brd, p, l, sz)) return FAILURE;
@@ -373,10 +383,35 @@ int get_movlist(cell * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
-/*int move_pierce(cell * brd, int p, int q){
+int move_piece(cell * brd, int p, int q){
+  list jql;
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (!is_valid_index(q)) return FAILURE;
-}*/
+  if (is_empty(brd, p)) return FAILURE;
+  int szq = 0; int szp = 0;
+  int* valid_movs_p = malloc(sizeof(int)*30);
+  if (valid_movs_p == NULL) return FAILURE;
+  int* valid_movs_q = malloc(sizeof(int)*30);
+  if (valid_movs_q == NULL) return FAILURE;
+  get_movlist(brd, p, valid_movs_p, &szp);
+  for (size_t i = 0; i < szp; i++) {
+    if (q == valid_movs_p[i]) break;
+    if (i == szp-1) return FAILURE;
+  }
+  // Get King in cheque list
+  if (brd[p].p->cl == WHITE) jql = jql_black;
+  else  jql = jql_white;
+  // Swap cells
+  brd[q].p = malloc(sizeof(piece));
+  if (brd[q].p == NULL) return FAILURE;
+  brd[q].p->tp = brd[p].p->tp;
+  brd[q].p->cl = brd[p].p->cl;
+  brd[p].p = NULL;
+  remove_list(&jql, valid_movs_p, szp);
+  get_movlist(brd, q, valid_movs_q, &szq);
+  append_unique_list(&jql, valid_movs_q, szq);
+  return SUCCESS;
+}
 
 #endif
