@@ -9,8 +9,8 @@
 
 #define FAILURE 0
 #define SUCCESS 1
-#define MAXSIZE 2
-#define MAX 32
+
+#define MAX 64
 #define SIZE l->size
 
 struct bd_t {
@@ -32,25 +32,27 @@ struct list_t {
 typedef struct list_t list;
 
 /* ------- PROTOTYPES ------- */
-int create_list(list*);
-int append_list(list*, int);
-int append_unique_list(list*, int);
-int in_list(list*, int);
-int remove_list(list*, int);
+int create(list*);
+int append(list*, int);
+int append_unique(list*, int);
+int append_unique_list(list*, int*, int);
+int in(list*, int);
+int remove_(list*, int);
+int remove_list(list*, int*, int);
 int print_list(list*);
-int del_list(list*);
+int del(list*);
 /* -------------------------- */
 
-int create_list(list* l){
+int create(list* l){
   l->head = NULL;
   l->tail = NULL;
   SIZE = 0;
   return SUCCESS;
 }
 
-int append_list(list* l, int elem){
+int append(list* l, int elem){
   if (l == NULL) return FAILURE;
-  if (SIZE == MAX) return MAXSIZE;
+  if (SIZE == MAX) return FAILURE;
   int count = 1;
   node* nodo;
   nodo = malloc(sizeof(node));
@@ -72,26 +74,34 @@ int append_list(list* l, int elem){
   return SUCCESS;
 }
 
-int append_unique_list(list* l, int elem){
+int append_unique(list* l, int elem){
   if (l == NULL) return FAILURE;
-  if (SIZE == MAX) return MAXSIZE;
+  if (SIZE == MAX) return FAILURE;
   node* i = l->head;
   while (1) {
-    if (i == NULL) { append_list(l,elem); break;}
+    if (i == NULL) { append(l,elem); break;}
     if (i->body->b == elem) { i->body->c++; break;}
     i = i->next;
   }
   return SUCCESS;
 }
 
-int remove_list(list* l, int elem){
+int append_unique_list(list* l, int* array, int sz){
+  if (l == NULL) return FAILURE;
+  for (size_t i = 0; i < sz; i++) {
+    if (!append_unique(l, array[i])) return FAILURE;
+  }
+  return SUCCESS;
+}
+
+int remove_(list* l, int elem){
   if (l == NULL) return FAILURE;
   node* i = l->head;
   node* j = i;
   while (1) {
     if (i == NULL) break;
     if (i->body->b == elem) {
-      if (l->head == l->tail && i->body->c == 1) { del_list(l); create_list(l); }
+      if (l->head == l->tail && i->body->c == 1) { del(l); create(l); }
       else {
         if (i->body->c == 1){
           if (l->head == i) l->head = l->head->next;
@@ -109,7 +119,15 @@ int remove_list(list* l, int elem){
   return SUCCESS;
 }
 
-int in_list(list* l, int elem){
+int remove_list(list* l, int* array, int sz){
+  if (l == NULL) return FAILURE;
+  for (size_t i = 0; i < sz; i++) {
+    if (!remove_(l, array[i])) return FAILURE;
+  }
+  return SUCCESS;
+}
+
+int in(list* l, int elem){
   if (l == NULL) return FAILURE;
   node* i = l->head;
   while (1) {
@@ -125,13 +143,13 @@ int print_list(list* l){
   node* i = l->head;
   while (1) {
     if (i == NULL) break;
-    printf("%i | %i\n", i->body->b, i->body->c);
+    printf("%2i | %i\n", i->body->b, i->body->c);
     i = i->next;
   }
   return SUCCESS;
 }
 
-int del_list(list* l) {
+int del(list* l) {
   if (l == NULL) return FAILURE;
   node* i = l->head;
   node* j;
