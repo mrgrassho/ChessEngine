@@ -194,13 +194,13 @@ int get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
             *sz += 1;
       }
     }
-    if (_same_row(i,k-1)) {
+    if (_same_row(k,k-1)) {
       if (is_enemy(brd, k-1, brd[i].p->cl)) {
         *l++ = k-1;
         *sz += 1;
       }
     }
-    if (_same_row(i,k+1)) {
+    if (_same_row(k,k+1)) {
       if (is_enemy(brd, k+1, brd[i].p->cl)) {
         *l++ = k+1;
         *sz += 1;
@@ -381,7 +381,7 @@ int get_movlist(cell_t * brd, int p, int* l, int* sz){
 }
 
 int move_piece(cell_t * brd, int p, int q){
-  list_t jql;
+  list_t* jql;
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (!is_valid_index(q)) return FAILURE;
@@ -397,17 +397,17 @@ int move_piece(cell_t * brd, int p, int q){
     if (i == szp-1) return FAILURE;
   }
   // Get King in cheque list_t
-  if (brd[p].p->cl == WHITE) jql = jql_black;
-  else  jql = jql_white;
+  if (brd[p].p->cl == WHITE) jql = &jql_black;
+  else  jql = &jql_white;
   // Swap cells
   brd[q].p = malloc(sizeof(piece_t));
   if (brd[q].p == NULL) return FAILURE;
   brd[q].p->tp = brd[p].p->tp;
   brd[q].p->cl = brd[p].p->cl;
   brd[p].p = NULL;
-  remove_list(&jql, valid_movs_p, szp);
+  remove_list(jql, valid_movs_p, szp);
   get_movlist(brd, q, valid_movs_q, &szq);
-  append_unique_list(&jql, valid_movs_q, szq);
+  append_unique_list(jql, valid_movs_q, szq);
   return SUCCESS;
 }
 
