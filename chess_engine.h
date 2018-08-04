@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <ctype.h>
 #include "linked_list.h"
 
 #define PIECES 16
@@ -40,11 +41,34 @@ typedef struct {
 list_t jql_white;
 list_t jql_black;
 
+typedef struct {
+  enum {SAFE, JAQUE, JMATE} king_state;
+  int indx;
+} king_t;
+
+king_t king_black;
+king_t king_white;
+
+typedef struct {
+  int queen_indx,
+  int towr1_indx,
+  int towr2_indx,
+  int bish1_indx,
+  int bish2_indx
+} xss_piece_t;
+
+xss_piece_t xss_pcs_black;
+xss_piece_t xss_pcs_white;
+
 #define FAILURE 0
 #define SUCCESS 1
 #define NOPIECE 2
 
 int init_brd(cell_t * brd){
+  king_black.king_state = SAFE;
+  king_black.indx = 4;
+  king_white.king_state = SAFE;
+  king_white.indx = 60;
   create(&jql_black);
   create(&jql_white);
   // PAWNS
@@ -108,13 +132,13 @@ int init_brd(cell_t * brd){
 }
 
 int get_index(int ch, int num){
-  if ((ch < 65) || (ch > 72)) {
+  if ((ch < 97) || (ch > 104)) {
     exit(FAILURE);
   }
   if ((num < 49) || (num > 56)) {
     exit(FAILURE);
   }
-  ch -= 65;
+  ch -= 97;
   num -= 49;
   return (8 * (7 - num)) + ch;
 }
@@ -124,7 +148,7 @@ char* get_coord(int i){
     exit(FAILURE);
   }
   char *nd = malloc(sizeof(char)*2);
-  nd[0] = (char) 65 + i % 8;
+  nd[0] = (char) 97 + i % 8;
   nd[1] = (char) 56 - i / 8;
   return nd;
 }
@@ -274,7 +298,7 @@ int _aux_horses(cell_t * brd, int i, int k, int q, int* l, int* sz){
       }
     }
   }
-  return 0;
+  return SUCCESS;
 }
 
 int get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
@@ -283,7 +307,7 @@ int get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
   _aux_horses(brd, i, i+1, i+2, l, sz);
   l += *sz; //IMPORTANT - SHIFTS MEMORY POINTER
   _aux_horses(brd, i, i-1, i-2, l, sz);
-  return 0;
+  return SUCCESS;
 }
 
 int get_movlist_bishops(cell_t * brd, int p, int* l, int* sz){
@@ -332,7 +356,6 @@ int convert_index_4_king(int p, int i, int* k){
   return SUCCESS;
 }
 
-// DEBUG ->
 int get_movlist_kings(cell_t * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
@@ -380,8 +403,90 @@ int get_movlist(cell_t * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
+int _get_estate(cell_t* brd, int j, int king, type_piece_t t1, type_piece_t t2){
+  if (!is_valid_index(j)) return FAILURE;
+  if (is_empty(brd, j))  return NOPIECE;
+  if (((brd[j].p->tp == t1) || (brd[j].p->tp == t2))  && (is_enemy(brd, j, brd[king].p->cl))) return SUCCESS;
+  return FAILURE;
+}
+
+int king_in_check(cell_t* brd, int p, int king){
+  // check same _same_row
+  if (_same_row(king, p)){
+    // going right
+    for (int j = king + 1; j%8 != 0; j++){
+      switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
+        case FAILURE: break;
+        case SUCCESS: return 1;
+        case NOPIECE: continue;
+      }
+    }
+    // going left
+    for (int j = king - 1; j%8 != 7; j--){
+      switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
+        case FAILURE: break;
+        case SUCCESS: return 1;
+        case NOPIECE: continue;
+      }
+    }
+  }
+  // check same _same_column
+  if (_same_column(king, p)){
+      // going down
+      for (int j = king + 8; j > 64; j+=8){
+        switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
+          case FAILURE: break;
+          case SUCCESS: return 1;
+          case NOPIECE: continue;
+        }
+      }
+      // going up
+      for (int j = king - 8; j < -1; j-=8){
+        switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
+          case FAILURE: break;
+          case SUCCESS: return 1;
+          case NOPIECE: continue;
+        }
+      }
+  }
+  // going right up
+  for (int j = king - 7; j%8 != 0; j -= 7){
+    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
+      case FAILURE: break;
+      case SUCCESS: return 1;
+      case NOPIECE: continue;
+    }
+  }
+  // going right down
+  for (int j = king + 9; j%8 != 0; j += 9) {
+    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
+      case FAILURE: break;
+      case SUCCESS: return 1;
+      case NOPIECE: continue;
+    }
+  }
+  // going left down
+  for (int j = king + 7; j%8 != 7; j += 7) {
+    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
+      case FAILURE: break;
+      case SUCCESS: return 1;
+      case NOPIECE: continue;
+    }
+  }
+  // going left up
+  for (int j = king - 9; j%8 != 7; j -= 9){
+    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
+      case FAILURE: break;
+      case SUCCESS: return 1;
+      case NOPIECE: continue;
+    }
+  }
+  return 0;
+}
+
 int move_piece(cell_t * brd, int p, int q){
   list_t* jql;
+  king_t* king_st;
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (!is_valid_index(q)) return FAILURE;
@@ -392,13 +497,20 @@ int move_piece(cell_t * brd, int p, int q){
   int* valid_movs_q = malloc(sizeof(int)*30);
   if (valid_movs_q == NULL) return FAILURE;
   get_movlist(brd, p, valid_movs_p, &szp);
+  if (szp == 0) return FAILURE;
+  // Check if q is a valid index to move in
   for (size_t i = 0; i < szp; i++) {
     if (q == valid_movs_p[i]) break;
     if (i == szp-1) return FAILURE;
   }
   // Get King in cheque list_t
-  if (brd[p].p->cl == WHITE) jql = &jql_black;
-  else  jql = &jql_white;
+  if (brd[p].p->cl == WHITE) {
+    jql = &jql_black;
+    king_st = &king_black;
+  } else {
+    jql = &jql_white;
+    king_st = &king_white;
+  }
   // Swap cells
   brd[q].p = malloc(sizeof(piece_t));
   if (brd[q].p == NULL) return FAILURE;
@@ -408,6 +520,22 @@ int move_piece(cell_t * brd, int p, int q){
   remove_list(jql, valid_movs_p, szp);
   get_movlist(brd, q, valid_movs_q, &szq);
   append_unique_list(jql, valid_movs_q, szq);
+  // Change king stored position
+  if (brd[q].p->tp == KING) {
+    king_st->indx = q;
+  }
+  // ONLY if piece index p was on same line, same row or same diagonals of the King
+  // OR if king index is in the jql list
+  else if ((in(jql, king_st->indx)) || (king_in_check(brd, p, king_st->indx))) {
+    king_st->king_state = JAQUE;
+    int szk = 0;
+    int* lk = malloc(sizeof(int)*30);
+    if (valid_movs_p == NULL) return FAILURE;
+    get_movlist(brd, *king, lk, &szk);
+    // TODO - Check when the king is in jaque_mate
+    //if (szk == 0) jaque_mate = 1;
+  }
+
   return SUCCESS;
 }
 
