@@ -49,17 +49,6 @@ typedef struct {
 king_t king_black;
 king_t king_white;
 
-typedef struct {
-  int queen_indx,
-  int towr1_indx,
-  int towr2_indx,
-  int bish1_indx,
-  int bish2_indx
-} xss_piece_t;
-
-xss_piece_t xss_pcs_black;
-xss_piece_t xss_pcs_white;
-
 #define FAILURE 0
 #define SUCCESS 1
 #define NOPIECE 2
@@ -484,13 +473,22 @@ int king_in_check(cell_t* brd, int p, int king){
   return 0;
 }
 
-int move_piece(cell_t * brd, int p, int q){
+int move_piece(cell_t * brd, int p, int q, color_t cl_player){
   list_t* jql;
   king_t* king_st;
+  if (current_color != cl_player) return FAILURE; // Replace with enum error type
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (!is_valid_index(q)) return FAILURE;
   if (is_empty(brd, p)) return FAILURE;
+  if (cl_player == BLACK){
+    jql = &jql_black;
+    king_st = &king_black;
+  } else {
+    jql = &jql_white;
+    king_st = &king_white;
+  }
+  if (king_st->king_state > 0) return FAILURE // King in check
   int szq = 0; int szp = 0;
   int* valid_movs_p = malloc(sizeof(int)*30);
   if (valid_movs_p == NULL) return FAILURE;
@@ -502,14 +500,6 @@ int move_piece(cell_t * brd, int p, int q){
   for (size_t i = 0; i < szp; i++) {
     if (q == valid_movs_p[i]) break;
     if (i == szp-1) return FAILURE;
-  }
-  // Get King in cheque list_t
-  if (brd[p].p->cl == WHITE) {
-    jql = &jql_black;
-    king_st = &king_black;
-  } else {
-    jql = &jql_white;
-    king_st = &king_white;
   }
   // Swap cells
   brd[q].p = malloc(sizeof(piece_t));
