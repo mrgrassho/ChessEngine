@@ -49,6 +49,8 @@ typedef struct {
 king_t king_black;
 king_t king_white;
 
+color_t current_color;
+
 #define FAILURE 0
 #define SUCCESS 1
 #define NOPIECE 2
@@ -117,6 +119,7 @@ int init_brd(cell_t * brd){
     brd[i].p = NULL;
   }
   brd -= 64;  // IMPORTANT -> step back 64 instructions.
+  current_color = WHITE;
   return SUCCESS;
 }
 
@@ -481,6 +484,7 @@ int move_piece(cell_t * brd, int p, int q, color_t cl_player){
   if (!is_valid_index(p)) return FAILURE;
   if (!is_valid_index(q)) return FAILURE;
   if (is_empty(brd, p)) return FAILURE;
+  if (brd[p].p->cl != cl_player) return FAILURE;
   if (cl_player == BLACK){
     jql = &jql_black;
     king_st = &king_black;
@@ -488,7 +492,7 @@ int move_piece(cell_t * brd, int p, int q, color_t cl_player){
     jql = &jql_white;
     king_st = &king_white;
   }
-  if (king_st->king_state > 0) return FAILURE // King in check
+  if (king_st->king_state > 0) return FAILURE; // King in check
   int szq = 0; int szp = 0;
   int* valid_movs_p = malloc(sizeof(int)*30);
   if (valid_movs_p == NULL) return FAILURE;
@@ -521,11 +525,12 @@ int move_piece(cell_t * brd, int p, int q, color_t cl_player){
     int szk = 0;
     int* lk = malloc(sizeof(int)*30);
     if (valid_movs_p == NULL) return FAILURE;
-    get_movlist(brd, *king, lk, &szk);
+    get_movlist(brd, king_st->indx, lk, &szk);
     // TODO - Check when the king is in jaque_mate
     //if (szk == 0) jaque_mate = 1;
   }
-
+  if (current_color == WHITE) current_color = BLACK;
+  else current_color = WHITE;
   return SUCCESS;
 }
 
