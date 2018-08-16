@@ -51,11 +51,13 @@ king_t king_white;
 
 color_t current_color;
 
-#define FAILURE 0
-#define SUCCESS 1
-#define NOPIECE 2
+typedef enum {
+  FAILURE,
+  SUCCESS,
+  NOPIECE
+} error_chss_t;
 
-int init_brd(cell_t * brd){
+error_chss_t init_brd(cell_t * brd){
   king_black.king_state = SAFE;
   king_black.indx = 4;
   king_white.king_state = SAFE;
@@ -123,7 +125,7 @@ int init_brd(cell_t * brd){
   return SUCCESS;
 }
 
-int get_index(int ch, int num){
+error_chss_t get_index(int ch, int num){
   if ((ch < 97) || (ch > 104)) {
     exit(FAILURE);
   }
@@ -146,19 +148,19 @@ char* get_coord(int i){
 }
 
 int is_valid_index(int i){
-  if ((i < 0) || (i > 63)) return FAILURE;
-  return SUCCESS;
+  if ((i < 0) || (i > 63)) return 0;
+  return 1;
 }
 
 int is_empty(cell_t * brd, int i){
-  if (!is_valid_index(i)) return FAILURE;
+  if (!is_valid_index(i)) return 0;
   return brd[i].p == NULL;
 }
 
 int is_enemy(cell_t * brd, int i, color_t cl){
-  if (!is_valid_index(i)) return FAILURE;
+  if (!is_valid_index(i)) return 0;
   if (!is_empty(brd, i)) return brd[i].p->cl != cl;
-  return FAILURE;
+  return 1;
 }
 
 const char* get_type(cell_t* brd, int p){
@@ -182,16 +184,16 @@ int _get_next(cell_t * brd, int i, int stps){
 }
 
 int _same_row(int d, int k){
-  if (!is_valid_index(d) || !is_valid_index(k)) return FAILURE;
+  if (!is_valid_index(d) || !is_valid_index(k)) return 0;
   return d/8 == k/8;
 }
 
 int _same_column(int d, int k){
-  if (!is_valid_index(d) || !is_valid_index(k)) return FAILURE;
+  if (!is_valid_index(d) || !is_valid_index(k)) return 0;
   return d%8 == k%8;
 }
 
-int get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
+error_chss_t get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
 
@@ -226,7 +228,7 @@ int get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-int get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
+error_chss_t get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   // going right
@@ -264,7 +266,7 @@ int get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-int _aux_horses(cell_t * brd, int i, int k, int q, int* l, int* sz){
+error_chss_t _aux_horses(cell_t * brd, int i, int k, int q, int* l, int* sz){
   int m; int n;  int o;  int p;
   if (_same_row(i, k)) {
     if (_same_column(k, m = k-16)) {
@@ -293,7 +295,7 @@ int _aux_horses(cell_t * brd, int i, int k, int q, int* l, int* sz){
   return SUCCESS;
 }
 
-int get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
+error_chss_t get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   _aux_horses(brd, i, i+1, i+2, l, sz);
@@ -302,7 +304,7 @@ int get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-int get_movlist_bishops(cell_t * brd, int p, int* l, int* sz){
+error_chss_t get_movlist_bishops(cell_t * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
   // going right up
@@ -332,7 +334,7 @@ int get_movlist_bishops(cell_t * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
-int convert_index_4_king(int p, int i, int* k){
+error_chss_t convert_index_4_king(int p, int i, int* k){
   if (is_valid_index(p)) return FAILURE;
   if (i < 0 || i > 9) return FAILURE;
 
@@ -348,7 +350,7 @@ int convert_index_4_king(int p, int i, int* k){
   return SUCCESS;
 }
 
-int get_movlist_kings(cell_t * brd, int p, int* l, int* sz){
+error_chss_t get_movlist_kings(cell_t * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
   int k; list_t jql; int answer;
@@ -365,7 +367,7 @@ int get_movlist_kings(cell_t * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
-int get_movlist(cell_t * brd, int p, int* l, int* sz){
+error_chss_t get_movlist(cell_t * brd, int p, int* l, int* sz){
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (is_empty(brd,p)) return FAILURE;
@@ -395,7 +397,7 @@ int get_movlist(cell_t * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
-int _get_estate(cell_t* brd, int j, int king, type_piece_t t1, type_piece_t t2){
+error_chss_t _get_estate(cell_t* brd, int j, int king, type_piece_t t1, type_piece_t t2){
   if (!is_valid_index(j)) return FAILURE;
   if (is_empty(brd, j))  return NOPIECE;
   if (((brd[j].p->tp == t1) || (brd[j].p->tp == t2))  && (is_enemy(brd, j, brd[king].p->cl))) return SUCCESS;
@@ -476,14 +478,14 @@ int king_in_check(cell_t* brd, int p, int king){
   return 0;
 }
 
-int move_piece(cell_t * brd, int p, int q, color_t cl_player){
+error_chss_t move_piece(cell_t * brd, int p, int q, color_t cl_player){
   list_t* jql;
   king_t* king_st;
   if (current_color != cl_player) return FAILURE; // Replace with enum error type
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
   if (!is_valid_index(q)) return FAILURE;
-  if (is_empty(brd, p)) return FAILURE;
+  if (is_empty(brd, p)) return NOPIECE;
   if (brd[p].p->cl != cl_player) return FAILURE;
   if (cl_player == BLACK){
     jql = &jql_black;
@@ -510,7 +512,6 @@ int move_piece(cell_t * brd, int p, int q, color_t cl_player){
   if (brd[q].p == NULL) return FAILURE;
   brd[q].p->tp = brd[p].p->tp;
   brd[q].p->cl = brd[p].p->cl;
-  brd[p].p = NULL;
   remove_list(jql, valid_movs_p, szp);
   get_movlist(brd, q, valid_movs_q, &szq);
   append_unique_list(jql, valid_movs_q, szq);
@@ -529,6 +530,7 @@ int move_piece(cell_t * brd, int p, int q, color_t cl_player){
     // TODO - Check when the king is in jaque_mate
     //if (szk == 0) jaque_mate = 1;
   }
+  brd[q].p = NULL;
   if (current_color == WHITE) current_color = BLACK;
   else current_color = WHITE;
   return SUCCESS;
