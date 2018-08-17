@@ -39,6 +39,8 @@ int remove_(list_t*, int);
 int remove_list(list_t*, int*, int);
 int print_list(list_t*);
 int del(list_t*);
+int save_list(list_t*, char* fname, int offset);
+int open_list(list_t*, char* fname, int offset);
 /* -------------------------- */
 
 int create(list_t* l){
@@ -48,10 +50,9 @@ int create(list_t* l){
   return SUCCESS;
 }
 
-int append(list_t* l, int elem){
+int append(list_t* l, int elem, int count){
   if (l == NULL) return FAILURE;
   if (SIZE == MAX) return FAILURE;
-  int count = 1;
   node_t* nodo;
   nodo = malloc(sizeof(node_t));
   if (nodo == NULL) return FAILURE;
@@ -77,7 +78,7 @@ int append_unique(list_t* l, int elem){
   if (SIZE == MAX) return FAILURE;
   node_t* i = l->head;
   while (1) {
-    if (i == NULL) { append(l,elem); break;}
+    if (i == NULL) { append(l,elem,1); break;}
     if (i->body->b == elem) { i->body->c++; break;}
     i = i->next;
   }
@@ -158,6 +159,42 @@ int del(list_t* l) {
     i = j;
   }
   return SUCCESS;
+}
+
+int save_list(list_t* l, char* fname, int* offset){
+  if (l == NULL) return FAILURE;
+  node_t* i = l->head;
+  int c = 0;
+  FILE* fp = fopen(fname, "wb");
+  fseek(fp, offset, SEEK_SET);
+  fwrite(l.size, sizeof(int), 1, fp);
+  offset += sizeof(int);
+  while (1) {
+    offset += c * sizeof(bd_t);
+    if (i == NULL) break;
+    fseek(fp, offset, SEEK_SET);
+    fwrite(i->body, sizeof(bd_t), 1, fp);
+    i = i->next;
+    c++;
+  }
+  fclose(fp);
+}
+
+int open_list(list_t* l, char* fname, int offset){
+  create_list(l);
+  int sz;
+  FILE* fp = fopen(fname, "rb");
+  // read list size value
+  fseek(fp, offset, SEEK_SET);
+  fread(sz, sizeof(int), 1, fp);
+  offset += sizeof(int);
+  for (size_t i = 0; i < sz; i++) {
+    bd_t body;
+    fseek(fp, offset +  i * sizeof(bd_t), SEEK_SET);
+    fread(body, sizeof(bd_t), 1, fp);
+    append(l, body.b, body.c);
+  }
+  fclose(fp);
 }
 
 #endif
