@@ -40,6 +40,7 @@ typedef struct {
 // KING IN CHECK LIST - Positions where the enemy's king CAN'T be in.
 list_t jql_white;
 list_t jql_black;
+list_t history;
 
 typedef struct {
   enum {SAFE, JAQUE, JMATE} king_state;
@@ -54,8 +55,78 @@ color_t current_color;
 typedef enum {
   FAILURE,
   SUCCESS,
-  NOPIECE
+  NOPIECE,
+  FILE_NOT_EXIST
 } error_chss_t;
+
+error_chss_t save_chess(cell_t* brd, char* fname) {
+  if (brd == NULL) return FAILURE;
+  if (fname == NULL) return FAILURE;
+  int offset = 0;
+  FILE * fp = fopen(fname, "wb");
+  // save BOARD
+  for (size_t i = 0; i < 64; i++) {
+    offset = sizeof(piece_t) * i;
+    fseek(fp, offset, SEEK_SET);
+    fwrite(brd->p, sizeof piece_t, 1, fp);
+  }
+  offset = sizeof(piece_t) * 64;
+  // save jql_black
+  save_list(&jql_black, fname, &offset);
+  // save jql_white
+  save_list(&jql_white, fname, &offset);
+  // save history
+  save_list(&history, fname, &offset);
+  // save black king structure
+  fseek(fp, offset, SEEK_SET);
+  fwrite(king_black, sizeof(king_t), 1, fp);
+  offset += sizeof(king_t);
+  // save white king structure
+  fseek(fp, offset, SEEK_SET);
+  fwrite(king_white, sizeof(king_t), 1, fp);
+  offset += sizeof(king_t);
+  // save color (current turn)
+  fseek(fp, offset, SEEK_SET);
+  fwrite(current_color, sizeof(color_t), 1, fp);
+  fclose(fp);
+  return SUCESS;
+}
+
+error_chss_t open_chess(cell_t* brd, char* fname){
+  if (brd != NULL) return FAILURE;
+  if (fname == NULL) return FAILURE;
+  FILE * fp = fopen(fname, "rb");
+  if (!fp) return FILE_NOT_EXIST;
+  int offset;
+  // load BOARD
+  for (size_t i = 0; i < 64; i++) {
+    brd[i].p = malloc(sizeof(piece_t));
+    if (brd[i].p == NULL) return FAILURE;
+    offset = sizeof(piece_t) * i;
+    fseek(fp, offset, SEEK_SET);
+    fread(brd[i].p, sizeof(piece_t), 1, fp);
+  }
+  offset = sizeof(piece_t) * 64;
+  // open jql_black
+  open_list(&jql_black, fname, &offset);
+  // open jql_white
+  open_list(&jql_white, fname, &offset);
+  // open history
+  open_list(&history, fname, &offset);
+  // save black king structure
+  fseek(fp, offset, SEEK_SET);
+  fread(king_black, sizeof(king_t), 1, fp);
+  offset += sizeof(king_t);
+  // save white king structure
+  fseek(fp, offset, SEEK_SET);
+  fread(king_white, sizeof(king_t), 1, fp);
+  offset += sizeof(king_t);
+  // save color (current turn)
+  fseek(fp, offset, SEEK_SET);
+  fread(current_color, sizeof(color_t), 1, fp);
+  fclose(fp);
+  return SUCESS;
+}
 
 error_chss_t init_brd(cell_t * brd){
   king_black.king_state = SAFE;
@@ -64,6 +135,7 @@ error_chss_t init_brd(cell_t * brd){
   king_white.indx = 60;
   create(&jql_black);
   create(&jql_white);
+  create(&history);
   // PAWNS
   for (size_t i = 0; i < 64; i++) {
     brd->p = malloc(sizeof(piece_t));
@@ -528,9 +600,17 @@ error_chss_t move_piece(cell_t * brd, int p, int q, color_t cl_player){
     if (valid_movs_p == NULL) return FAILURE;
     get_movlist(brd, king_st->indx, lk, &szk);
     // TODO - Check when the king is in jaque_mate
-    //if (szk == 0) jaque_mate = 1;
+    if (szk == 0)
+      if (!blockpossible(brd)) jaque_mate = 1;
   }
   brd[q].p = NULL;
+  /* Add indexes (previous and actual) to list.
+     ***EXPLANATION***:
+     HERE we ADD p and q in the same structure,
+     now we don't need a counter so we manipulate
+     the list structure to save space.
+  */
+  append(&history, p, q);
   if (current_color == WHITE) current_color = BLACK;
   else current_color = WHITE;
   return SUCCESS;
