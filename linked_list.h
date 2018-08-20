@@ -41,6 +41,7 @@ int print_list(list_t*);
 int del(list_t*);
 int save_list(list_t*, char* fname, int offset);
 int open_list(list_t*, char* fname, int offset);
+int pop(list_t*, bd_t* n);
 /* -------------------------- */
 
 int create(list_t* l){
@@ -198,6 +199,11 @@ int open_list(list_t* l, char* fname, int* offset){
   }
   *offset += sz * sizeof(bd_t);
   fclose(fp);
+}
+
+int pop(list_t* l, bd_t* n){
+  if (l == NULL) return FAILURE;
+  *n = l->tail->body;
 }
 
 #endif
