@@ -250,8 +250,8 @@ const char* get_color(cell_t* brd, int p){
 }
 
 // ONLY FOR PAWNS
-int _get_next(cell_t * brd, int i, int stps){
-  if (brd[i].p->cl == WHITE)
+int _get_next(cell_t * brd, color_t cl, int i, int stps){
+  if (cl == WHITE)
     return i - stps;
   else
     return i + stps;
@@ -267,11 +267,30 @@ bool _same_column(int d, int k){
   return d%8 == k%8;
 }
 
+error_chss_t _check_if_(cell_t * brd, int j, color_t cl, const char* pieces, bool* f){
+  *f = false;
+  if (is_empty(brd,j)) return FAILURE;
+  while (*pieces != '\0') {
+    piece_t pc;
+    switch (*pieces) {
+      case 'p': pc = PAWN;
+      case 'h': pc = HORSE;
+      case 'b': pc = BISHOP;
+      case 't': pc = TOWER;
+      case 'q': pc = QUEEN;
+      case 'k': pc = KING;
+    }
+    if ((brd[i].p->cl == cl) && (brd[i].p->tp == pc)) *f = true;
+    ++pieces;
+  }
+  return SUCCESS;
+}
+
 error_chss_t get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
 
-  int k = _get_next(brd,i,8);
+  int k = _get_next(brd, brd[i].p->cl, i, 8);
   if (!is_valid_index(k))
     return FAILURE;
   else {
@@ -279,7 +298,7 @@ error_chss_t get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
       *l++ = k;
       *sz += 1;
       if ((i / 8 == 1) || (i / 8 == 6)) {
-        int j = _get_next(brd,i,16);
+        int j = _get_next(brd,brd[i].p->cl,i,16);
         if (is_valid_index(j))
           if (is_empty(brd, j))
             *l++ = j;
@@ -302,10 +321,22 @@ error_chss_t get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-bool _check_if_(cell_t * brd, int j, color_t cl, type_piece_t piece, bool* f){
-  if (is_empty(brd,j)) return false;
-  if ((brd[i].p->cl == cl) && (brd[i].p->tp == piece)) *f = true;
-  return true;
+error_chss_t reverse_lookup_pawn(cell_t * brd, int i, color_t l, bool* flag){
+  if (!is_valid_index(i)) return FAILURE;
+  if (brd == NULL) return FAILURE;
+  int k = _get_next(brd, cl, i, -8);
+  if (!is_valid_index(k))
+    return FAILURE;
+  else {
+    _check_if_(brd, cl, k, 'p', flag);
+    if (!flag && is_empty(brd, k)){
+      if ((i / 8 == 3) || (i / 8 == 4)) {
+        k = _get_next(brd, cl, i, -16);
+        _check_if_(brd, cl, k, 'p', flag);
+      }
+    }
+  }
+  return SUCCESS;
 }
 
 bool _check_cell(cell_t * brd, int j, int* l, int* sz){
@@ -315,8 +346,6 @@ bool _check_cell(cell_t * brd, int j, int* l, int* sz){
 }
 
 error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
-  if (!is_valid_index(i)) return FAILURE;
-  if (brd == NULL) return FAILURE;
   va_list args;
   va_start(args, fmt);
   switch (*fmt) {
@@ -336,7 +365,7 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
     for (int j = i + 1; j%8 != 0; j++) {
       switch (*fmt) {
         case 'l': if (_check_cell(brd, j, l, sz)) break;
-        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
       }
     }
   }
@@ -345,7 +374,7 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
     for (int j = i-1; j%8 != 7; j--) {
       switch (*fmt) {
         case 'l': if (_check_cell(brd, j, l, sz)) break;
-        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
       }
     }
   }
@@ -354,7 +383,7 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
     for (int j = i + 8; j < 64; j+=8) {
       switch (*fmt) {
         case 'l': if (_check_cell(brd, j, l, sz)) break;
-        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
       }
     }
   }
@@ -363,7 +392,7 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
     for (int j = i-8; j > -1; j-=8) {
       switch (*fmt) {
         case 'l': if (_check_cell(brd, j, l, sz)) break;
-        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
       }
     }
   }
@@ -379,79 +408,141 @@ error_chss_t get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-error_chss_t reverse_lookup_towers(cell_t * brd, int i, color_t cl, int* flag){
+error_chss_t reverse_lookup_towers_and_queen(cell_t * brd, int i, color_t cl, bool* flag){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   // going right
+  *flag = false;
   _tower_moves(brd, i, 'r', cl, flag);
   return SUCCESS;
 }
 
-error_chss_t _aux_horses(cell_t * brd, int i, int k, int q, int* l, int* sz){
-  int m; int n;  int o;  int p;
+error_chss_t _horse_moves(cell_t * brd, int i, int k, int d, const char* fmt, ...){
+  int o;
+  va_list args;
+  va_start(args, fmt);
+  switch (*fmt) {
+    case 'l': { // list
+      int* l = va_arg(args, int*);
+      int* sz = va_arg(args, int*);
+    }
+    case 'r': { // reverse
+      color_t color = va_arg(args, color_t);
+      bool* flag = va_arg(args, bool*);
+    }
+    default: return FAILURE;
+  }
   if (_same_row(i, k)) {
-    if (_same_column(k, m = k-16)) {
-      if (is_empty(brd, m) || is_enemy(brd,m,brd[i].p->cl)){
-        *l++ = m; *sz += 1;
-      }
-    }
-    if (_same_column(k, o = k+16)) {
-      if (is_empty(brd, o) || is_enemy(brd,o,brd[i].p->cl)){
-        *l++ = o; *sz += 1;
+    if (_same_column(k, o = k+d)) {
+        switch (*fmt) {
+          case 'l': if (is_empty(brd, o) || is_enemy(brd,o,brd[i].p->cl)){ *l++ = m; (*sz)++; }
+          case 'r': _check_if_(brd, j, color, 'h', flag);
+        }
       }
     }
   }
-  if (_same_row(i, q)) {
-    if (_same_column(q, n = q-8)) {
-      if (is_empty(brd, n) || is_enemy(brd,n,brd[i].p->cl)){
-        *l++ = n; *sz += 1;
-      }
-    }
-    if (_same_column(q, p = q+8)) {
-      if (is_empty(brd, p) || is_enemy(brd,p,brd[i].p->cl)) {
-        *l++ = p; *sz += 1;
-      }
-    }
-  }
+  va_end(args);
   return SUCCESS;
 }
 
 error_chss_t get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
-  _aux_horses(brd, i, i+1, i+2, l, sz);
-  l += *sz; //IMPORTANT - SHIFTS MEMORY POINTER
-  _aux_horses(brd, i, i-1, i-2, l, sz);
+  _horse_moves(brd, i, i+1, 16, 'l', l, sz);
+  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i+2,  8, 'l', l, sz);
+  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i+1,-16, 'l', l, sz);
+  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i+2, -8, 'l', l, sz);
+  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i-1, 16, 'l', l, sz);
+  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i-2,  8, 'l', l, sz);
+  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i-1,-16, 'l', l, sz);
+  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i-2, -8, 'l', l, sz);
+  return SUCCESS;
+}
+
+error_chss_t reverse_lookup_horses(cell_t * brd, int i, color_t cl, bool* flag){
+  if (!is_valid_index(i)) return FAILURE;
+  if (brd == NULL) return FAILURE;
+  int arr[2] = {i+1, i-1};
+  for (size_t i = 0; i < len(arr); i++) {
+    _horse_moves(brd, i, arr[i], 16, 'r', cl, flag);
+    if (flag) return SUCCESS;
+    _horse_moves(brd, i, arr[i], -16, 'r', cl, flag);
+    if (flag) return SUCCESS;
+  }
+  arr[2] = {i+2, i-2};
+  for (size_t i = 0; i < len(arr); i++) {
+    _horse_moves(brd, i, arr[i], 8, 'r', cl, flag);
+    if (flag) return SUCCESS;
+    _horse_moves(brd, i, arr[i], -8, 'r', cl, flag);
+    if (flag) return SUCCESS;
+  }
+  return SUCCESS;
+}
+
+error_chss_t _bishop_moves(cell_t * brd, int p, const char* fmt, ...){
+  va_list args;
+  va_start(args, fmt);
+  switch (*fmt) {
+    case 'l': { // list
+      int* l = va_arg(args, int*);
+      int* sz = va_arg(args, int*);
+    }
+    case 'r':{
+      color_t color = va_arg(args, color_t);
+      bool* flag = va_arg(args, bool*);
+    }
+    default:
+      return FAILURE;
+  }
+  // going right up
+  for (size_t j = p - 7; j%8 != 0; j -= 7){
+    switch (*fmt) {
+      case 'l': if (_check_cell(brd, j, l, sz)) break;
+      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+    }
+  }
+  // going right down
+  for (size_t j = p + 9; j%8 != 0; j += 9) {
+    switch (*fmt) {
+      case 'l': if (_check_cell(brd, j, l, sz)) break;
+      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+    }
+  }
+  // going left down
+  for (size_t j = p + 7; j%8 != 7; j += 7) {
+    switch (*fmt) {
+      case 'l': if (_check_cell(brd, j, l, sz)) break;
+      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+    }
+  }
+  // going left up
+  for (size_t j = p - 9; j%8 != 7; j -= 9){
+    switch (*fmt) {
+      case 'l': if (_check_cell(brd, j, l, sz)) break;
+      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+    }
+  }
   return SUCCESS;
 }
 
 error_chss_t get_movlist_bishops(cell_t * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
-  // going right up
-  for (size_t j = p - 7; j%8 != 0; j -= 7){
-    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
-    break;
-  }
-  // going right down
-  for (size_t j = p + 9; j%8 != 0; j += 9) {
-    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
-    break;
-  }
-  // going left down
-  for (size_t j = p + 7; j%8 != 7; j += 7) {
-    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
-    break;
-  }
-  // going left up
-  for (size_t j = p - 9; j%8 != 7; j -= 9){
-    if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-    if (is_enemy(brd,j,brd[p].p->cl)) {*l++ = j; *sz += 1;}
-    break;
-  }
+  _bishop_moves(brd, p, 'l', l, sz);
+  return SUCCESS;
+}
+
+error_chss_t reverse_lookup_bishops_and_queen(cell_t* brd, int p, color_t cl, bool* flag){
+  if (!is_valid_index(p)) return FAILURE;
+  if (brd == NULL) return FAILURE;
+  _bishop_moves(brd, p, 'r', cl, flag);
   return SUCCESS;
 }
 
@@ -491,7 +582,7 @@ error_chss_t get_movlist_kings(cell_t * brd, int p, int* l, int* sz){
 error_chss_t get_movlist(cell_t * brd, int p, int* l, int* sz){
   if (brd == NULL) return FAILURE;
   if (!is_valid_index(p)) return FAILURE;
-  if (is_empty(brd,p)) return FAILURE;
+  if (is_empty(brd,p)) return NOPIECE;
   *sz = 0;                            // Size of the list_t
   switch (brd[p].p->tp) {
     case PAWN:
