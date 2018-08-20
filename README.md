@@ -2,10 +2,8 @@
 Chess engine coded in C.
 
 TO DO:
-- [ADD Persistence]
-- [Python Server]
-- [JS Client]
+- [Python Server with DJANGO]
 
 TO FIX:
-- [King in Check behaviour] ***INFO*** -> fix king in checkmate 
+- [King in Check behaviour] ***INFO*** -> fix king in checkmate
 - [Add castling behaviour]

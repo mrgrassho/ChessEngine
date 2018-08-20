@@ -31,7 +31,7 @@ typedef struct {
 
 /* ------- PROTOTYPES ------- */
 int create(list_t*);
-int append(list_t*, int);
+int append(list_t*, int, int);
 int append_unique(list_t*, int);
 int append_unique_list(list_t*, int*, int);
 int in(list_t*, int);
@@ -166,13 +166,13 @@ int save_list(list_t* l, char* fname, int* offset){
   node_t* i = l->head;
   int c = 0;
   FILE* fp = fopen(fname, "wb");
-  fseek(fp, offset, SEEK_SET);
+  fseek(fp, *offset, SEEK_SET);
   fwrite(l.size, sizeof(int), 1, fp);
-  offset += sizeof(int);
+  *offset += sizeof(int);
   while (1) {
-    offset += c * sizeof(bd_t);
+    *offset += c * sizeof(bd_t);
     if (i == NULL) break;
-    fseek(fp, offset, SEEK_SET);
+    fseek(fp, *offset, SEEK_SET);
     fwrite(i->body, sizeof(bd_t), 1, fp);
     i = i->next;
     c++;
@@ -180,20 +180,23 @@ int save_list(list_t* l, char* fname, int* offset){
   fclose(fp);
 }
 
-int open_list(list_t* l, char* fname, int offset){
+int open_list(list_t* l, char* fname, int* offset){
   create_list(l);
   int sz;
   FILE* fp = fopen(fname, "rb");
   // read list size value
-  fseek(fp, offset, SEEK_SET);
-  fread(sz, sizeof(int), 1, fp);
-  offset += sizeof(int);
+  if (!fp) return FAILURE;
+  fseek(fp, *offset, SEEK_SET);
+  fread(&sz, sizeof(int), 1, fp);
+  *offset += sizeof(int);
   for (size_t i = 0; i < sz; i++) {
     bd_t body;
-    fseek(fp, offset +  i * sizeof(bd_t), SEEK_SET);
-    fread(body, sizeof(bd_t), 1, fp);
+    *offset += i * sizeof(bd_t);
+    fseek(fp, *offset, SEEK_SET);
+    fread(&body, sizeof(bd_t), 1, fp);
     append(l, body.b, body.c);
   }
+  *offset += sz * sizeof(bd_t);
   fclose(fp);
 }
 
