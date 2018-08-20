@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include "linked_list.h"
 
 #define PIECES 16
@@ -219,20 +221,20 @@ char* get_coord(int i){
   return nd;
 }
 
-int is_valid_index(int i){
-  if ((i < 0) || (i > 63)) return 0;
-  return 1;
+bool is_valid_index(int i){
+  if ((i < 0) || (i > 63)) return false;
+  return true;
 }
 
-int is_empty(cell_t * brd, int i){
-  if (!is_valid_index(i)) return 0;
+bool is_empty(cell_t * brd, int i){
+  if (!is_valid_index(i)) return false;
   return brd[i].p == NULL;
 }
 
-int is_enemy(cell_t * brd, int i, color_t cl){
-  if (!is_valid_index(i)) return 0;
+bool is_enemy(cell_t * brd, int i, color_t cl){
+  if (!is_valid_index(i)) return false;
   if (!is_empty(brd, i)) return brd[i].p->cl != cl;
-  return 1;
+  return true;
 }
 
 const char* get_type(cell_t* brd, int p){
@@ -255,12 +257,12 @@ int _get_next(cell_t * brd, int i, int stps){
     return i + stps;
 }
 
-int _same_row(int d, int k){
+bool _same_row(int d, int k){
   if (!is_valid_index(d) || !is_valid_index(k)) return 0;
   return d/8 == k/8;
 }
 
-int _same_column(int d, int k){
+bool _same_column(int d, int k){
   if (!is_valid_index(d) || !is_valid_index(k)) return 0;
   return d%8 == k%8;
 }
@@ -300,41 +302,88 @@ error_chss_t get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-error_chss_t get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
+bool _check_if_(cell_t * brd, int j, color_t cl, type_piece_t piece, bool* f){
+  if (is_empty(brd,j)) return false;
+  if ((brd[i].p->cl == cl) && (brd[i].p->tp == piece)) *f = true;
+  return true;
+}
+
+bool _check_cell(cell_t * brd, int j, int* l, int* sz){
+  if (is_empty(brd,j)) {*l++ = j; (*sz)++; return false;}
+  if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; (*sz)++;}
+  return true;
+}
+
+error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
+  va_list args;
+  va_start(args, fmt);
+  switch (*fmt) {
+    case 'l': { // list
+      int* l = va_arg(args, int*);
+      int* sz = va_arg(args, int*);
+    }
+    case 'r':{
+      color_t color = va_arg(args, color_t);
+      bool* flag = va_arg(args, bool*);
+    }
+    default:
+      return FAILURE;
+  }
   // going right
   if(_same_row(i, i+1)){
     for (int j = i + 1; j%8 != 0; j++) {
-      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-      break;
+      switch (*fmt) {
+        case 'l': if (_check_cell(brd, j, l, sz)) break;
+        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+      }
     }
   }
   // going left
   if(_same_row(i, i-1)){
     for (int j = i-1; j%8 != 7; j--) {
-      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-      break;
+      switch (*fmt) {
+        case 'l': if (_check_cell(brd, j, l, sz)) break;
+        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+      }
     }
   }
   // going down
   if(_same_column(i, i+8)){
     for (int j = i + 8; j < 64; j+=8) {
-      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-      break;
+      switch (*fmt) {
+        case 'l': if (_check_cell(brd, j, l, sz)) break;
+        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+      }
     }
   }
   // going up
   if(_same_column(i, i-8)){
     for (int j = i-8; j > -1; j-=8) {
-      if (is_empty(brd,j)) {*l++ = j; *sz += 1; continue;}
-      if (is_enemy(brd,j,brd[i].p->cl)) {*l++ = j; *sz += 1;}
-      break;
+      switch (*fmt) {
+        case 'l': if (_check_cell(brd, j, l, sz)) break;
+        case 'r': if (_check_if_(brd, j, color, TOWER, flag)) return SUCESS;
+      }
     }
   }
+  va_end(args);
+  return SUCCESS;
+}
+
+error_chss_t get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
+  if (!is_valid_index(i)) return FAILURE;
+  if (brd == NULL) return FAILURE;
+  // going right
+  _tower_moves(brd, i, 'l', l, sz);
+  return SUCCESS;
+}
+
+error_chss_t reverse_lookup_towers(cell_t * brd, int i, color_t cl, int* flag){
+  if (!is_valid_index(i)) return FAILURE;
+  if (brd == NULL) return FAILURE;
+  // going right
+  _tower_moves(brd, i, 'r', cl, flag);
   return SUCCESS;
 }
 
@@ -476,14 +525,14 @@ error_chss_t _get_estate(cell_t* brd, int j, int king, type_piece_t t1, type_pie
   return FAILURE;
 }
 
-int king_in_check(cell_t* brd, int p, int king){
+bool king_in_check(cell_t* brd, int p, int king){
   // check same _same_row
   if (_same_row(king, p)){
     // going right
     for (int j = king + 1; j%8 != 0; j++){
       switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
         case FAILURE: break;
-        case SUCCESS: return 1;
+        case SUCCESS: return true;
         case NOPIECE: continue;
       }
     }
@@ -491,7 +540,7 @@ int king_in_check(cell_t* brd, int p, int king){
     for (int j = king - 1; j%8 != 7; j--){
       switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
         case FAILURE: break;
-        case SUCCESS: return 1;
+        case SUCCESS: return true;
         case NOPIECE: continue;
       }
     }
@@ -502,7 +551,7 @@ int king_in_check(cell_t* brd, int p, int king){
       for (int j = king + 8; j > 64; j+=8){
         switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
           case FAILURE: break;
-          case SUCCESS: return 1;
+          case SUCCESS: return true;
           case NOPIECE: continue;
         }
       }
@@ -510,7 +559,7 @@ int king_in_check(cell_t* brd, int p, int king){
       for (int j = king - 8; j < -1; j-=8){
         switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
           case FAILURE: break;
-          case SUCCESS: return 1;
+          case SUCCESS: return true;
           case NOPIECE: continue;
         }
       }
@@ -519,7 +568,7 @@ int king_in_check(cell_t* brd, int p, int king){
   for (int j = king - 7; j%8 != 0; j -= 7){
     switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
       case FAILURE: break;
-      case SUCCESS: return 1;
+      case SUCCESS: return true;
       case NOPIECE: continue;
     }
   }
@@ -527,7 +576,7 @@ int king_in_check(cell_t* brd, int p, int king){
   for (int j = king + 9; j%8 != 0; j += 9) {
     switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
       case FAILURE: break;
-      case SUCCESS: return 1;
+      case SUCCESS: return true;
       case NOPIECE: continue;
     }
   }
@@ -535,7 +584,7 @@ int king_in_check(cell_t* brd, int p, int king){
   for (int j = king + 7; j%8 != 7; j += 7) {
     switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
       case FAILURE: break;
-      case SUCCESS: return 1;
+      case SUCCESS: return true;
       case NOPIECE: continue;
     }
   }
@@ -543,11 +592,11 @@ int king_in_check(cell_t* brd, int p, int king){
   for (int j = king - 9; j%8 != 7; j -= 9){
     switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
       case FAILURE: break;
-      case SUCCESS: return 1;
+      case SUCCESS: return true;
       case NOPIECE: continue;
     }
   }
-  return 0;
+  return false;
 }
 
 error_chss_t move_piece(cell_t * brd, int p, int q, color_t cl_player){
@@ -591,6 +640,13 @@ error_chss_t move_piece(cell_t * brd, int p, int q, color_t cl_player){
   if (brd[q].p->tp == KING) {
     king_st->indx = q;
   }
+  /* Add indexes (previous and actual) to list.
+     ***EXPLANATION***:
+     HERE we ADD p and q in the same structure,
+     now we don't need a counter so we manipulate
+     the list structure to save space.
+  */
+  append(&history, p, q);
   // ONLY if piece index p was on same line, same row or same diagonals of the King
   // OR if king index is in the jql list
   else if ((in(jql, king_st->indx)) || (king_in_check(brd, p, king_st->indx))) {
@@ -604,13 +660,6 @@ error_chss_t move_piece(cell_t * brd, int p, int q, color_t cl_player){
       if (!blockpossible(brd)) jaque_mate = 1;
   }
   brd[q].p = NULL;
-  /* Add indexes (previous and actual) to list.
-     ***EXPLANATION***:
-     HERE we ADD p and q in the same structure,
-     now we don't need a counter so we manipulate
-     the list structure to save space.
-  */
-  append(&history, p, q);
   if (current_color == WHITE) current_color = BLACK;
   else current_color = WHITE;
   return SUCCESS;
