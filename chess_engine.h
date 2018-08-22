@@ -70,7 +70,7 @@ error_chss_t save_chess(cell_t* brd, char* fname) {
   for (size_t i = 0; i < 64; i++) {
     offset = sizeof(piece_t) * i;
     fseek(fp, offset, SEEK_SET);
-    fwrite(brd->p, sizeof piece_t, 1, fp);
+    fwrite(brd->p, sizeof(piece_t), 1, fp);
   }
   offset = sizeof(piece_t) * 64;
   // save jql_black
@@ -81,17 +81,17 @@ error_chss_t save_chess(cell_t* brd, char* fname) {
   save_list(&history, fname, &offset);
   // save black king structure
   fseek(fp, offset, SEEK_SET);
-  fwrite(king_black, sizeof(king_t), 1, fp);
+  fwrite(&king_black, sizeof(king_t), 1, fp);
   offset += sizeof(king_t);
   // save white king structure
   fseek(fp, offset, SEEK_SET);
-  fwrite(king_white, sizeof(king_t), 1, fp);
+  fwrite(&king_white, sizeof(king_t), 1, fp);
   offset += sizeof(king_t);
   // save color (current turn)
   fseek(fp, offset, SEEK_SET);
-  fwrite(current_color, sizeof(color_t), 1, fp);
+  fwrite(&current_color, sizeof(color_t), 1, fp);
   fclose(fp);
-  return SUCESS;
+  return SUCCESS;
 }
 
 error_chss_t open_chess(cell_t* brd, char* fname){
@@ -110,24 +110,27 @@ error_chss_t open_chess(cell_t* brd, char* fname){
   }
   offset = sizeof(piece_t) * 64;
   // open jql_black
+  create(&jql_black);
   open_list(&jql_black, fname, &offset);
   // open jql_white
+  create(&jql_white);
   open_list(&jql_white, fname, &offset);
   // open history
+  create(&history);
   open_list(&history, fname, &offset);
   // save black king structure
   fseek(fp, offset, SEEK_SET);
-  fread(king_black, sizeof(king_t), 1, fp);
+  fread(&king_black, sizeof(king_t), 1, fp);
   offset += sizeof(king_t);
   // save white king structure
   fseek(fp, offset, SEEK_SET);
-  fread(king_white, sizeof(king_t), 1, fp);
+  fread(&king_white, sizeof(king_t), 1, fp);
   offset += sizeof(king_t);
   // save color (current turn)
   fseek(fp, offset, SEEK_SET);
-  fread(current_color, sizeof(color_t), 1, fp);
+  fread(&current_color, sizeof(color_t), 1, fp);
   fclose(fp);
-  return SUCESS;
+  return SUCCESS;
 }
 
 error_chss_t init_brd(cell_t * brd){
@@ -234,7 +237,7 @@ bool is_empty(cell_t * brd, int i){
 bool is_enemy(cell_t * brd, int i, color_t cl){
   if (!is_valid_index(i)) return false;
   if (!is_empty(brd, i)) return brd[i].p->cl != cl;
-  return true;
+  return false;
 }
 
 const char* get_type(cell_t* brd, int p){
@@ -271,7 +274,7 @@ bool _same_column(int d, int k){
 void union_array(int* l, int* sz, int* lq, int szq){
   int* la = malloc(sizeof(int)*8);
   int sza = 0;
-  for (size_t i = 0; i < sz; i++) {
+  for (size_t i = 0; i < *sz; i++) {
     for (size_t j = 0; j < szq; j++) {
       if (l[i] == lq[j]) {
         *la++ = l[i];
@@ -287,14 +290,15 @@ error_chss_t _check_if_(cell_t * brd, int j, color_t cl, const char* pieces, boo
   *f = false;
   if (is_empty(brd,j)) return FAILURE;
   while (*pieces != '\0') {
-    piece_t pc;
+    type_piece_t pc;
     switch (*pieces) {
-      case 'p': {pc = PAWN; break;}
-      case 'h': {pc = HORSE; break;}
-      case 'b': {pc = BISHOP; break;}
-      case 't': {pc = TOWER; break;}
-      case 'q': {pc = QUEEN; break;}
-      case 'k': {pc = KING; break;}
+      case 'p': pc = PAWN; break;
+      case 'h': pc = HORSE; break;
+      case 'b': pc = BISHOP; break;
+      case 't': pc = TOWER; break;
+      case 'q': pc = QUEEN; break;
+      case 'k': pc = KING; break;
+      default: return FAILURE;
     }
     if ((brd[j].p->cl == cl) && (brd[j].p->tp == pc)) *f = true;
     ++pieces;
@@ -337,28 +341,28 @@ error_chss_t get_movlist_pawns(cell_t * brd, int i, int* l, int* sz){
   return SUCCESS;
 }
 
-error_chss_t reverse_lookup_pawn(cell_t * brd, int i, color_t l, bool* flag){
+error_chss_t reverse_lookup_pawn(cell_t * brd, int i, color_t cl, bool* flag){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   int k = _get_next(brd, cl, i, -8);
   if (!is_valid_index(k))
     return FAILURE;
   else {
-    _check_if_(brd, cl, k, 'p', flag);
+    _check_if_(brd, cl, k, "p", flag);
     if (!flag && is_empty(brd, k)){
       if ((i / 8 == 3) || (i / 8 == 4)) {
         k = _get_next(brd, cl, i, -16);
-        _check_if_(brd, cl, k, 'p', flag);
+        _check_if_(brd, cl, k, "p", flag);
       }
     }
     if (_same_row(k,k-1)) {
       if (is_enemy(brd, k-1, brd[i].p->cl)) {
-        _check_if_(brd, cl, k-1, 'p', flag);
+        _check_if_(brd, cl, k-1, "p", flag);
       }
     }
     if (_same_row(k,k+1)) {
       if (is_enemy(brd, k+1, brd[i].p->cl)) {
-        _check_if_(brd, cl, k+1, 'p', flag);
+        _check_if_(brd, cl, k+1, "p", flag);
       }
     }
   }
@@ -372,18 +376,19 @@ bool _check_cell(cell_t * brd, int j, int i, int* l, int* sz){
 }
 
 error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
+  int* l; int* sz; color_t color; bool* flag;
   bool ret = false;
   va_list args;
   va_start(args, fmt);
   switch (*fmt) {
-    case 'l': { // list
-      int* l = va_arg(args, int*);
-      int* sz = va_arg(args, int*);
-    }
-    case 'r':{
-      color_t color = va_arg(args, color_t);
-      bool* flag = va_arg(args, bool*);
-    }
+    case 'l': // list
+      l = va_arg(args, int*);
+      sz = va_arg(args, int*);
+      break;
+    case 'r':
+      color = va_arg(args, color_t);
+      flag = va_arg(args, bool*);
+      break;
     default:
       return FAILURE;
   }
@@ -391,8 +396,10 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
   if(_same_row(i, i+1)){
     for (int j = i + 1; j%8 != 0; j++) {
       switch (*fmt) {
-        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true; break;}
-        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
+        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true;}
+                  break;
+        case 'r': if (_check_if_(brd, j, color, "qt", flag)) return SUCCESS;
+                  break;
       }
       if (ret) {ret = false; break;}
     }
@@ -401,8 +408,10 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
   if(_same_row(i, i-1)){
     for (int j = i-1; j%8 != 7; j--) {
       switch (*fmt) {
-        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true; break;}
-        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
+        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true;}
+                  break;
+        case 'r': if (_check_if_(brd, j, color, "qt", flag)) return SUCCESS;
+                  break;
       }
       if (ret) {ret = false; break;}
     }
@@ -411,8 +420,10 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
   if(_same_column(i, i+8)){
     for (int j = i + 8; j < 64; j+=8) {
       switch (*fmt) {
-        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true; break;}
-        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
+        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true;}
+                  break;
+        case 'r': if (_check_if_(brd, j, color, "qt", flag)) return SUCCESS;
+                  break;
       }
       if (ret) {ret = false; break;}
     }
@@ -421,8 +432,10 @@ error_chss_t _tower_moves(cell_t * brd, int i, const char * fmt, ...){
   if(_same_column(i, i-8)){
     for (int j = i-8; j > -1; j-=8) {
       switch (*fmt) {
-        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true; break;}
-        case 'r': if (_check_if_(brd, j, color, 'qt', flag)) return SUCESS;
+        case 'l': if (_check_cell(brd, j, i, l, sz)) {ret = true;}
+                  break;
+        case 'r': if (_check_if_(brd, j, color, "qt", flag)) return SUCCESS;
+                  break;
       }
     }
   }
@@ -434,7 +447,7 @@ error_chss_t get_movlist_towers(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   // going right
-  _tower_moves(brd, i, 'l', l, sz);
+  _tower_moves(brd, i, "l", l, sz);
   return SUCCESS;
 }
 
@@ -443,32 +456,33 @@ error_chss_t reverse_lookup_towers_and_queen(cell_t * brd, int i, color_t cl, bo
   if (brd == NULL) return FAILURE;
   // going right
   *flag = false;
-  _tower_moves(brd, i, 'r', cl, flag);
+  _tower_moves(brd, i, "r", cl, flag);
   return SUCCESS;
 }
 
 error_chss_t _horse_moves(cell_t * brd, int i, int k, int d, const char* fmt, ...){
-  int o;
+  int* l; int* sz; color_t color; bool* flag; int o;
   va_list args;
   va_start(args, fmt);
   switch (*fmt) {
-    case 'l': { // list
-      int* l = va_arg(args, int*);
-      int* sz = va_arg(args, int*);
-    }
-    case 'r': { // reverse
-      color_t color = va_arg(args, color_t);
-      bool* flag = va_arg(args, bool*);
-    }
+    case 'l': // list
+      l = va_arg(args, int*);
+      sz = va_arg(args, int*);
+      break;
+    case 'r': // reverse
+      color = va_arg(args, color_t);
+      flag = va_arg(args, bool*);
+      break;
     default: return FAILURE;
   }
   if (_same_row(i, k)) {
     if (_same_column(k, o = k+d)) {
         switch (*fmt) {
-          case 'l': if (is_empty(brd, o) || is_enemy(brd,o,brd[i].p->cl)){ *l++ = m; (*sz)++; }
-          case 'r': _check_if_(brd, j, color, 'h', flag);
+          case 'l': if (is_empty(brd, o) || is_enemy(brd,o,brd[i].p->cl)){ *l++ = o; (*sz)++; }
+                    break;
+          case 'r': _check_if_(brd, o, color, "h", flag);
+                    break;
         }
-      }
     }
   }
   va_end(args);
@@ -478,21 +492,29 @@ error_chss_t _horse_moves(cell_t * brd, int i, int k, int d, const char* fmt, ..
 error_chss_t get_movlist_horses(cell_t * brd, int i, int* l, int* sz){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
-  _horse_moves(brd, i, i+1, 16, 'l', l, sz);
-  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
-  _horse_moves(brd, i, i+2,  8, 'l', l, sz);
-  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
-  _horse_moves(brd, i, i+1,-16, 'l', l, sz);
-  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
-  _horse_moves(brd, i, i+2, -8, 'l', l, sz);
-  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
-  _horse_moves(brd, i, i-1, 16, 'l', l, sz);
-  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
-  _horse_moves(brd, i, i-2,  8, 'l', l, sz);
-  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
-  _horse_moves(brd, i, i-1,-16, 'l', l, sz);
-  l += (*sz); //IMPORTANT - SHIFTS MEMORY POINTER
-  _horse_moves(brd, i, i-2, -8, 'l', l, sz);
+  int offset = 0;
+  _horse_moves(brd, i, i+1, 16, "l", l, sz);
+  offset = *sz;
+  l += offset; //IMPORTANT - SHIFTS MEMORY POINTER
+  _horse_moves(brd, i, i+2,  8, "l", l, sz);
+  l += (*sz - offset); //IMPORTANT - SHIFTS MEMORY POINTER
+  offset = *sz;
+  _horse_moves(brd, i, i+1,-16, "l", l, sz);
+  l += (*sz - offset); //IMPORTANT - SHIFTS MEMORY POINTER
+  offset = *sz;
+  _horse_moves(brd, i, i+2, -8, "l", l, sz);
+  l += (*sz - offset); //IMPORTANT - SHIFTS MEMORY POINTER
+  offset = *sz;
+  _horse_moves(brd, i, i-1, 16, "l", l, sz);
+  l += (*sz - offset); //IMPORTANT - SHIFTS MEMORY POINTER
+  offset = *sz;
+  _horse_moves(brd, i, i-2,  8, "l", l, sz);
+  l += (*sz - offset); //IMPORTANT - SHIFTS MEMORY POINTER
+  offset = *sz;
+  _horse_moves(brd, i, i-1,-16, "l", l, sz);
+  l += (*sz - offset); //IMPORTANT - SHIFTS MEMORY POINTER
+  offset = *sz;
+  _horse_moves(brd, i, i-2, -8, "l", l, sz);
   return SUCCESS;
 }
 
@@ -500,67 +522,76 @@ error_chss_t reverse_lookup_horses(cell_t * brd, int i, color_t cl, bool* flag){
   if (!is_valid_index(i)) return FAILURE;
   if (brd == NULL) return FAILURE;
   int arr[2] = {i+1, i-1};
-  for (size_t i = 0; i < len(arr); i++) {
-    _horse_moves(brd, i, arr[i], 16, 'r', cl, flag);
+  for (size_t i = 0; i < 2; i++) {
+    _horse_moves(brd, i, arr[i], 16, "r", cl, flag);
     if (flag) return SUCCESS;
-    _horse_moves(brd, i, arr[i], -16, 'r', cl, flag);
+    _horse_moves(brd, i, arr[i], -16, "r", cl, flag);
     if (flag) return SUCCESS;
   }
-  arr[2] = {i+2, i-2};
-  for (size_t i = 0; i < len(arr); i++) {
-    _horse_moves(brd, i, arr[i], 8, 'r', cl, flag);
+  int ar2[2] = {i+2, i-2};
+  for (size_t i = 0; i < 2; i++) {
+    _horse_moves(brd, i, ar2[i], 8, "r", cl, flag);
     if (flag) return SUCCESS;
-    _horse_moves(brd, i, arr[i], -8, 'r', cl, flag);
+    _horse_moves(brd, i, ar2[i], -8, "r", cl, flag);
     if (flag) return SUCCESS;
   }
   return SUCCESS;
 }
 
 error_chss_t _bishop_moves(cell_t * brd, int p, const char* fmt, ...){
+  int* l; int* sz; color_t color; bool* flag;
   bool ret = false;
   va_list args;
   va_start(args, fmt);
   switch (*fmt) {
-    case 'l': { // list
-      int* l = va_arg(args, int*);
-      int* sz = va_arg(args, int*);
-    }
-    case 'r':{
-      color_t color = va_arg(args, color_t);
-      bool* flag = va_arg(args, bool*);
-    }
+    case 'l':  // list
+      l = va_arg(args, int*);
+      sz = va_arg(args, int*);
+      break;
+    case 'r':
+      color = va_arg(args, color_t);
+      flag = va_arg(args, bool*);
+      break;
     default:
       return FAILURE;
   }
   // going right up
   for (size_t j = p - 7; j%8 != 0; j -= 7){
     switch (*fmt) {
-      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true; break;}
-      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true;}
+                break;
+      case 'r': if (_check_if_(brd, j, color, "bq", flag)) return SUCCESS;
+                break;
     }
     if (ret) {ret = false; break;}
   }
   // going right down
   for (size_t j = p + 9; j%8 != 0; j += 9) {
     switch (*fmt) {
-      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true; break;}
-      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true;}
+                break;
+      case 'r': if (_check_if_(brd, j, color, "bq", flag)) return SUCCESS;
+                break;
     }
     if (ret) {ret = false; break;}
   }
   // going left down
   for (size_t j = p + 7; j%8 != 7; j += 7) {
     switch (*fmt) {
-      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true; break;}
-      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true;}
+                break;
+      case 'r': if (_check_if_(brd, j, color, "bq", flag)) return SUCCESS;
+                break;
     }
     if (ret) {ret = false; break;}
   }
   // going left up
   for (size_t j = p - 9; j%8 != 7; j -= 9){
     switch (*fmt) {
-      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true; break;}
-      case 'r': if (_check_if_(brd, j, color, 'bq', flag)) return SUCESS;
+      case 'l': if (_check_cell(brd, j, p, l, sz)) {ret = true;}
+                break;
+      case 'r': if (_check_if_(brd, j, color, "bq", flag)) return SUCCESS;
+                break;
     }
   }
   return SUCCESS;
@@ -569,14 +600,14 @@ error_chss_t _bishop_moves(cell_t * brd, int p, const char* fmt, ...){
 error_chss_t get_movlist_bishops(cell_t * brd, int p, int* l, int* sz){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
-  _bishop_moves(brd, p, 'l', l, sz);
+  _bishop_moves(brd, p, "l", l, sz);
   return SUCCESS;
 }
 
 error_chss_t reverse_lookup_bishops_and_queen(cell_t* brd, int p, color_t cl, bool* flag){
   if (!is_valid_index(p)) return FAILURE;
   if (brd == NULL) return FAILURE;
-  _bishop_moves(brd, p, 'r', cl, flag);
+  _bishop_moves(brd, p, "r", cl, flag);
   return SUCCESS;
 }
 
@@ -644,96 +675,25 @@ error_chss_t get_movlist(cell_t * brd, int p, int* l, int* sz){
   return SUCCESS;
 }
 
-error_chss_t _get_estate(cell_t* brd, int j, int king, type_piece_t t1, type_piece_t t2){
-  if (!is_valid_index(j)) return FAILURE;
-  if (is_empty(brd, j))  return NOPIECE;
-  if (((brd[j].p->tp == t1) || (brd[j].p->tp == t2))  && (is_enemy(brd, j, brd[king].p->cl))) return SUCCESS;
-  return FAILURE;
-}
-
-bool king_in_check(cell_t* brd, int p, int king){
-  // check same _same_row
-  if (_same_row(king, p)){
-    // going right
-    for (int j = king + 1; j%8 != 0; j++){
-      switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
-        case FAILURE: break;
-        case SUCCESS: return true;
-        case NOPIECE: continue;
-      }
-    }
-    // going left
-    for (int j = king - 1; j%8 != 7; j--){
-      switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
-        case FAILURE: break;
-        case SUCCESS: return true;
-        case NOPIECE: continue;
-      }
-    }
-  }
-  // check same _same_column
-  if (_same_column(king, p)){
-      // going down
-      for (int j = king + 8; j > 64; j+=8){
-        switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
-          case FAILURE: break;
-          case SUCCESS: return true;
-          case NOPIECE: continue;
-        }
-      }
-      // going up
-      for (int j = king - 8; j < -1; j-=8){
-        switch (_get_estate(brd, j, king, TOWER, QUEEN)) {
-          case FAILURE: break;
-          case SUCCESS: return true;
-          case NOPIECE: continue;
-        }
-      }
-  }
-  // going right up
-  for (int j = king - 7; j%8 != 0; j -= 7){
-    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
-      case FAILURE: break;
-      case SUCCESS: return true;
-      case NOPIECE: continue;
-    }
-  }
-  // going right down
-  for (int j = king + 9; j%8 != 0; j += 9) {
-    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
-      case FAILURE: break;
-      case SUCCESS: return true;
-      case NOPIECE: continue;
-    }
-  }
-  // going left down
-  for (int j = king + 7; j%8 != 7; j += 7) {
-    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
-      case FAILURE: break;
-      case SUCCESS: return true;
-      case NOPIECE: continue;
-    }
-  }
-  // going left up
-  for (int j = king - 9; j%8 != 7; j -= 9){
-    switch (_get_estate(brd, j, king, BISHOP, QUEEN)) {
-      case FAILURE: break;
-      case SUCCESS: return true;
-      case NOPIECE: continue;
-    }
-  }
-  return false;
-}
-
 error_chss_t reverse_lookup(cell_t* brd, int p, color_t cl, bool* flag){
   if (brd ==  NULL) return FAILURE;
-  if (!is_valid_index(q)) return FAILURE;
+  if (!is_valid_index(p)) return FAILURE;
   if (cl != WHITE && cl != BLACK) return FAILURE;
   reverse_lookup_pawn(brd, p, cl, flag);
   if (!flag) reverse_lookup_horses(brd, p, cl, flag);
   if (!flag) reverse_lookup_towers_and_queen(brd, p, cl, flag);
   if (!flag) reverse_lookup_bishops_and_queen(brd, p, cl, flag);
-  return SUCESS;
+  return SUCCESS;
+}
+
+bool king_in_check(cell_t* brd, int king, color_t cl){
+  if (brd ==  NULL) return FAILURE;
+  if (!is_valid_index(king)) return FAILURE;
+  if (cl != WHITE && cl != BLACK) return FAILURE;
+  bool flag = false;
+  reverse_lookup_towers_and_queen(brd, king, cl, &flag);
+  if (!flag) reverse_lookup_bishops_and_queen(brd, king, cl, &flag);
+  return flag;
 }
 
 bool _blockpossible(cell_t* brd, int p, color_t cl, int* lq, int szq){
@@ -769,6 +729,7 @@ bool _blockpossible(cell_t* brd, int p, color_t cl, int* lq, int szq){
       union_array(l, &sz, lq, szq);
       break;
     }
+    default: return false;
   }
   l += sz;
   *l++ = p;
@@ -829,7 +790,7 @@ error_chss_t move_piece(cell_t * brd, int p, int q, color_t cl_player){
   append(&history, p, q);
   // ONLY if piece index p was on same line, same row or same diagonals of the King
   // OR if king index is in the jql list
-  else if ((in(jql, king_st->indx)) || (king_in_check(brd, p, king_st->indx))) {
+  if ((in(jql, king_st->indx)) || (king_in_check(brd, p, king_st->indx))) {
     king_st->king_state = JAQUE;
     int szk = 0;
     int* lk = malloc(sizeof(int)*30);

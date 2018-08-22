@@ -7,8 +7,8 @@
 
 // Variable length list_t management with pointers with DICCIONARY behaviour.
 
-#define FAILURE 0
-#define SUCCESS 1
+#define FAILURE_M 0
+#define SUCCESS_M 1
 
 #define MAX 64
 #define SIZE l->size
@@ -39,8 +39,8 @@ int remove_(list_t*, int);
 int remove_list(list_t*, int*, int);
 int print_list(list_t*);
 int del(list_t*);
-int save_list(list_t*, char* fname, int offset);
-int open_list(list_t*, char* fname, int offset);
+int save_list(list_t*, char* fname, int* offset);
+int open_list(list_t*, char* fname, int* offset);
 int pop(list_t*, bd_t* n);
 /* -------------------------- */
 
@@ -48,54 +48,54 @@ int create(list_t* l){
   l->head = NULL;
   l->tail = NULL;
   SIZE = 0;
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int append(list_t* l, int elem, int count){
-  if (l == NULL) return FAILURE;
-  if (SIZE == MAX) return FAILURE;
+  if (l == NULL) return FAILURE_M;
+  if (SIZE == MAX) return FAILURE_M;
   node_t* nodo;
   nodo = malloc(sizeof(node_t));
-  if (nodo == NULL) return FAILURE;
+  if (nodo == NULL) return FAILURE_M;
   nodo->body = malloc(sizeof(bd_t));
-  if (nodo->body == NULL) return FAILURE;
+  if (nodo->body == NULL) return FAILURE_M;
   nodo->body->b = elem;
   nodo->body->c = count;
   nodo->next = NULL;
   if (SIZE > 0) {
     l->tail->next = malloc(sizeof(node_t));
-    if (l->tail->next == NULL) return FAILURE;
+    if (l->tail->next == NULL) return FAILURE_M;
     l->tail->next = nodo;
   } else {
     l->head = nodo;
   }
   l->tail = nodo;
   SIZE++;
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int append_unique(list_t* l, int elem){
-  if (l == NULL) return FAILURE;
-  if (SIZE == MAX) return FAILURE;
+  if (l == NULL) return FAILURE_M;
+  if (SIZE == MAX) return FAILURE_M;
   node_t* i = l->head;
   while (1) {
     if (i == NULL) { append(l,elem,1); break;}
     if (i->body->b == elem) { i->body->c++; break;}
     i = i->next;
   }
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int append_unique_list(list_t* l, int* array, int sz){
-  if (l == NULL) return FAILURE;
+  if (l == NULL) return FAILURE_M;
   for (size_t i = 0; i < sz; i++) {
-    if (!append_unique(l, array[i])) return FAILURE;
+    if (!append_unique(l, array[i])) return FAILURE_M;
   }
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int remove_(list_t* l, int elem){
-  if (l == NULL) return FAILURE;
+  if (l == NULL) return FAILURE_M;
   node_t* i = l->head;
   node_t* j = i;
   while (1) {
@@ -116,41 +116,41 @@ int remove_(list_t* l, int elem){
     j = i;
     i = i->next;
   }
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int remove_list(list_t* l, int* array, int sz){
-  if (l == NULL) return FAILURE;
+  if (l == NULL) return FAILURE_M;
   for (size_t i = 0; i < sz; i++) {
-    if (!remove_(l, array[i])) return FAILURE;
+    if (!remove_(l, array[i])) return FAILURE_M;
   }
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int in(list_t* l, int elem){
-  if (l == NULL) return FAILURE;
+  if (l == NULL) return FAILURE_M;
   node_t* i = l->head;
   while (1) {
     if (i == NULL) break;
-    if (i->body->b == elem) return SUCCESS;
+    if (i->body->b == elem) return SUCCESS_M;
     i = i->next;
   }
-  return FAILURE;
+  return FAILURE_M;
 }
 
 int print_list(list_t* l){
-  if (l == NULL) return FAILURE;
+  if (l == NULL) return FAILURE_M;
   node_t* i = l->head;
   while (1) {
     if (i == NULL) break;
     printf("%2i | %i\n", i->body->b, i->body->c);
     i = i->next;
   }
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int del(list_t* l) {
-  if (l == NULL) return FAILURE;
+  if (l == NULL) return FAILURE_M;
   node_t* i = l->head;
   node_t* j;
   while (1) {
@@ -159,16 +159,16 @@ int del(list_t* l) {
     free(i);
     i = j;
   }
-  return SUCCESS;
+  return SUCCESS_M;
 }
 
 int save_list(list_t* l, char* fname, int* offset){
-  if (l == NULL) return FAILURE;
+  if (l == NULL) return FAILURE_M;
   node_t* i = l->head;
   int c = 0;
   FILE* fp = fopen(fname, "wb");
   fseek(fp, *offset, SEEK_SET);
-  fwrite(l.size, sizeof(int), 1, fp);
+  fwrite(&l->size, sizeof(int), 1, fp);
   *offset += sizeof(int);
   while (1) {
     *offset += c * sizeof(bd_t);
@@ -179,14 +179,14 @@ int save_list(list_t* l, char* fname, int* offset){
     c++;
   }
   fclose(fp);
+  return SUCCESS_M;
 }
 
 int open_list(list_t* l, char* fname, int* offset){
-  create_list(l);
   int sz;
   FILE* fp = fopen(fname, "rb");
   // read list size value
-  if (!fp) return FAILURE;
+  if (!fp) return FAILURE_M;
   fseek(fp, *offset, SEEK_SET);
   fread(&sz, sizeof(int), 1, fp);
   *offset += sizeof(int);
@@ -199,11 +199,13 @@ int open_list(list_t* l, char* fname, int* offset){
   }
   *offset += sz * sizeof(bd_t);
   fclose(fp);
+  return SUCCESS_M;
 }
 
 int pop(list_t* l, bd_t* n){
-  if (l == NULL) return FAILURE;
-  *n = l->tail->body;
+  if (l == NULL) return FAILURE_M;
+  n = l->tail->body;
+  return SUCCESS_M;
 }
 
 #endif
